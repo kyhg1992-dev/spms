@@ -1,0 +1,21 @@
+{
+  "name": "SPMS — نظام الصيانة الوقائية",
+  "short_name": "SPMS",
+  "description": "نظام الصيانة الوقائية الذكي: الأصول، أوامر العمل، القوالب، والمسح الميداني.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

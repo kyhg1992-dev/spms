@@ -1,0 +1,280 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function spmsRole() {
+      return isSignedIn()
+        && exists(userPath(request.auth.uid))
+          ? get(userPath(request.auth.uid)).data.role
+          : null;
+    }
+
+    function isAdmin() {
+      return spmsRole() == "admin";
+    }
+
+    function isManager() {
+      return spmsRole() == "manager";
+    }
+
+    function isTechnician() {
+      return spmsRole() == "technician";
+    }
+
+    function isRequester() {
+      return spmsRole() == "requester";
+    }
+
+    function managerRole() {
+      return isAdmin() || isManager();
+    }
+
+    function opsRole() {
+      return managerRole() || isTechnician();
+    }
+
+    function userSelfPreservesRole() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.isActive == resource.data.isActive;
+    }
+
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function hasOnlyCreateKeys(keys) {
+      return request.resource.data.keys().hasOnly(keys);
+    }
+
+    function isAssignedWorkOrder() {
+      return resource.data.assignedTo == request.auth.uid
+        || resource.data.assigneeId == request.auth.uid
+        || resource.data.requesterId == request.auth.uid;
+    }
+
+    function isTerminalWorkOrder(status) {
+      return status in ["closed", "cancelled"];
+    }
+
+    function managerWorkOrderFields() {
+      return [
+        "title", "description", "assetId", "requesterId", "assigneeId", "assignedTo", "assignedBy",
+        "reassignedAt", "reassignmentReason", "reassignmentHistory", "delegatedFrom", "delegatedTo",
+        "delegatedBy", "delegatedAt", "delegationReason", "delegationExpiresAt", "delegationStatus",
+        "delegationHistory", "status", "lifecycleStatus", "priority", "dueDate", "closedAt",
+        "closedByUid", "executionStartedAt", "executionCompletedAt", "technicianNotes", "laborHours",
+        "downtimeMinutes", "downtimeHours", "completionNotes", "actualLaborHours", "actualDowntimeHours",
+        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "requiredPartsNote",
+        "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "internalNotes",
+        "estimatedCost", "actualCost", "approvalRequired", "approvedByUid", "approvedAt", "rejectedAt",
+        "rejectedByUid", "rejectionReason", "pmScheduleId", "sourceType", "sourceRef",
+        "serviceLevelCode", "serviceLevelNameAr", "serviceTasks",
+        "lastPublicComment", "createdAt", "updatedAt"
+      ];
+    }
+
+    function technicianExecutionFields() {
+      return [
+        "status", "lifecycleStatus", "executionStartedAt", "executionCompletedAt", "technicianNotes",
+        "completionNotes", "actualLaborHours", "actualDowntimeHours", "meterReadingAtExecution",
+        "executionChecklist", "executionPhotos", "requiredPartsNote", "safetyNotes",
+        "completionMeterReadingId", "attachmentsPlaceholder", "updatedAt"
+      ];
+    }
+
+    function managerOnlyWorkOrderFieldsUntouched() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "assignedTo", "assigneeId", "assignedBy", "reassignedAt", "reassignmentReason",
+        "reassignmentHistory", "delegatedFrom", "delegatedTo", "delegatedBy", "delegatedAt",
+        "delegationReason", "delegationExpiresAt", "delegationStatus", "delegationHistory",
+        "approvalRequired", "approvedByUid", "approvedAt", "rejectedAt", "rejectedByUid",
+        "rejectionReason", "closedAt", "closedByUid", "pmScheduleId", "sourceType", "sourceRef"
+      ]);
+    }
+
+    function safeTechnicianStatusTransition() {
+      return (
+        resource.data.status == request.resource.data.status
+        || (resource.data.status == "assigned" && request.resource.data.status == "in_progress")
+        || (resource.data.status == "in_progress" && request.resource.data.status in ["waiting_parts", "waiting_approval", "completed"])
+      ) && (
+        resource.data.lifecycleStatus == request.resource.data.lifecycleStatus
+        || (resource.data.lifecycleStatus == "ASSIGNED" && request.resource.data.lifecycleStatus == "IN_PROGRESS")
+        || (resource.data.lifecycleStatus == "IN_PROGRESS" && request.resource.data.lifecycleStatus in ["WAITING_PARTS", "WAITING_APPROVAL", "COMPLETED"])
+      );
+    }
+
+    function safeTechnicianWorkOrderUpdate() {
+      return isTechnician()
+        && isAssignedWorkOrder()
+        && !isTerminalWorkOrder(resource.data.status)
+        && changedOnly(technicianExecutionFields())
+        && managerOnlyWorkOrderFieldsUntouched()
+        && safeTechnicianStatusTransition();
+    }
+
+    function managerWorkOrderUpdate() {
+      return managerRole()
+        && request.resource.data.keys().hasOnly(managerWorkOrderFields());
+    }
+
+    function safeRequesterWorkOrderCreate() {
+      return isRequester()
+        && request.resource.data.keys().hasOnly([
+          "title", "description", "assetId", "requesterId", "status", "lifecycleStatus",
+          "priority", "dueDate", "sourceType", "sourceRef", "lastPublicComment",
+          "createdAt", "updatedAt"
+        ])
+        && request.resource.data.requesterId == request.auth.uid
+        && request.resource.data.status == "open"
+        && (
+          !request.resource.data.keys().hasAny(["sourceType"])
+          || request.resource.data.sourceType in ["REQUEST", "MANUAL"]
+        );
+    }
+
+    function assetMeterUpdateOnly() {
+      return changedOnly(["operatingHours", "odometer", "updatedAt"]);
+    }
+
+    function pmScheduleManagerFields() {
+      return [
+        "assetId", "title", "serviceType", "frequencyDays", "nextRunAt", "lastRunAt",
+        "isActive", "triggerMode", "nextDueHours", "nextDueKm", "overdueStatus",
+        "dueSoonStatus", "pmStatus", "meterHoursInterval", "meterKmInterval",
+        "autoCreateWorkOrder", "templateCode", "lastCompletedWorkOrderId",
+        "lastGeneratedWorkOrderId", "maintenanceTemplateId", "lastServiceReading",
+        "createdAt", "updatedAt"
+      ];
+    }
+
+    function maintenanceTemplateFields() {
+      return [
+        "templateCode", "name", "assetTypeLabel", "sequence", "stepInterval", "meterKind",
+        "triggerMode", "levels", "isActive", "description", "createdAt", "updatedAt"
+      ];
+    }
+
+    function pmEngineUpdateOnly() {
+      return changedOnly([
+        "nextDueHours", "nextDueKm", "nextRunAt", "overdueStatus", "dueSoonStatus",
+        "pmStatus", "updatedAt"
+      ]);
+    }
+
+    function notificationCreateShape() {
+      return hasOnlyCreateKeys([
+        "userId", "targetRole", "type", "channel", "priority", "eventPriority", "eventType",
+        "eventKey", "title", "body", "isRead", "isArchived", "refPath", "deliveryPayload",
+        "createdAt", "updatedAt"
+      ])
+      && request.resource.data.userId is string
+      && request.resource.data.isRead == false
+      && request.resource.data.isArchived == false;
+    }
+
+    function notificationOwnerActionOnly() {
+      return changedOnly(["isRead", "readAt", "isArchived", "archivedAt", "archiveReason", "updatedAt"]);
+    }
+
+    function activityLogCreateShape() {
+      return hasOnlyCreateKeys([
+        "actorUid", "actionKey", "entityType", "entityId", "labelAr", "createdAt", "updatedAt"
+      ])
+      && request.resource.data.actorUid == request.auth.uid
+      && request.resource.data.actionKey is string
+      && request.resource.data.entityType is string
+      && request.resource.data.entityId is string
+      && request.resource.data.labelAr is string;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() &&
+        (
+          (request.auth.uid == userId && userSelfPreservesRole())
+          || isAdmin()
+        );
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /assets/{assetId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && managerRole();
+      allow update: if (isSignedIn() && managerRole())
+        || (isSignedIn() && opsRole() && assetMeterUpdateOnly());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /workOrders/{workOrderId} {
+      allow read: if isSignedIn()
+        && (managerRole() || isAssignedWorkOrder());
+      allow create: if isSignedIn()
+        && (
+          (managerRole() && request.resource.data.keys().hasOnly(managerWorkOrderFields()))
+          || safeRequesterWorkOrderCreate()
+        );
+      allow update: if isSignedIn() && (managerWorkOrderUpdate() || safeTechnicianWorkOrderUpdate());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /pmSchedules/{scheduleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && managerRole() && request.resource.data.keys().hasOnly(pmScheduleManagerFields());
+      allow update: if (isSignedIn() && managerRole() && request.resource.data.keys().hasOnly(pmScheduleManagerFields()))
+        || (isSignedIn() && opsRole() && pmEngineUpdateOnly());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /maintenanceTemplates/{templateId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && managerRole()
+        && request.resource.data.keys().hasOnly(maintenanceTemplateFields());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && (managerRole() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && notificationCreateShape();
+      allow update: if isSignedIn()
+        && (
+          (resource.data.userId == request.auth.uid && notificationOwnerActionOnly())
+          || (managerRole() && notificationOwnerActionOnly())
+        );
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /meterReadings/{meterId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && opsRole();
+      allow update: if false;
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && managerRole();
+      allow create: if isSignedIn() && (managerRole() || isTechnician()) && activityLogCreateShape();
+      allow update, delete: if false;
+    }
+
+    match /attachments/{attachmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (managerRole() || isTechnician() || isRequester());
+      allow update, delete: if isSignedIn() && (managerRole() || isTechnician());
+    }
+
+    match /companySettings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && managerRole();
+    }
+  }
+}
