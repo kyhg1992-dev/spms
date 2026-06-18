@@ -18,11 +18,11 @@ import {
   usePMSchedulesQuery,
   useWorkOrdersQuery,
 } from "@/hooks/use-spms-data"
-import { buildWoOverviewCsvFilename } from "@/lib/csv-filename"
 import { calculateMaintenanceKpis } from "@/lib/kpi-engine"
 import { workOrderStatusAr } from "@/lib/labels-ar"
-import { prepareReport, toCsvReadyReport, toExcelReadyReport, toPdfReadyReport } from "@/lib/report-export"
+import { prepareReport, toExcelReadyReport, toPdfReadyReport } from "@/lib/report-export"
 import { countBy, filterReportingDataset } from "@/lib/reporting-query"
+import { exportRowsToExcel, fileDateStamp } from "@/lib/xlsx-export"
 
 export default function ReportsPage() {
   const assets = useAssetsQuery()
@@ -60,23 +60,67 @@ export default function ReportsPage() {
   ])
   const excelReady = toExcelReadyReport(exportReport, "WO Status")
 
-  const rows = [
-    { name: "تقرير الأصول", hint: `${(assets.data ?? []).length.toLocaleString("en-US")} أصل`, done: !!assets.data },
-    { name: "تقرير الامتثال PM", hint: `${(pm.data ?? []).length.toLocaleString("en-US")} مخطط`, done: !!pm.data },
-    { name: "تقرير وقت التوقف WO", hint: `${(wos.data ?? []).length.toLocaleString("en-US")} أمر`, done: !!wos.data },
-  ]
-
-  function exportCsvPreview() {
-    const csv = toCsvReadyReport(exportReport, buildWoOverviewCsvFilename())
-    const blob = new Blob([csv.content], { type: csv.mimeType })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = csv.filename
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("تم إنشاء ملف تجريبي")
+  function exportAssets() {
+    const list = assets.data ?? []
+    if (list.length === 0) return toast.error("لا أصول للتصدير")
+    exportRowsToExcel(
+      `تقرير-الأصول-${fileDateStamp()}`,
+      list.map((a) => ({
+        "رقم الأصل": a.assetCode,
+        "الاسم": a.assetName,
+        "اللوحة": a.plateNo,
+        "التصنيف": a.equipmentClass ?? "",
+        "الموقع": a.location,
+        "الفرع": a.branch ?? "",
+        "الحالة": a.status,
+        "ساعات التشغيل": a.operatingHours,
+        "كم": a.odometer,
+      })),
+      "Assets"
+    )
+    toast.success(`تم تصدير ${list.length} أصل`)
   }
+
+  function exportWorkOrders() {
+    const list = wos.data ?? []
+    if (list.length === 0) return toast.error("لا أوامر للتصدير")
+    const nameAsset = new Map((assets.data ?? []).map((a) => [a.id, a.assetCode]))
+    exportRowsToExcel(
+      `تقرير-أوامر-العمل-${fileDateStamp()}`,
+      list.map((w) => ({
+        "العنوان": w.title,
+        "رقم الأصل": nameAsset.get(w.assetId) ?? "",
+        "المستوى": w.serviceLevelCode ?? "",
+        "الأولوية": w.priority,
+        "الحالة": workOrderStatusAr[String(w.status)] ?? String(w.status),
+        "رقم الطلب": w.externalRequestNo ?? "",
+      })),
+      "Work Orders"
+    )
+    toast.success(`تم تصدير ${list.length} أمر`)
+  }
+
+  function exportPm() {
+    const list = pm.data ?? []
+    if (list.length === 0) return toast.error("لا مخططات للتصدير")
+    exportRowsToExcel(
+      `تقرير-الصيانة-الوقائية-${fileDateStamp()}`,
+      list.map((p) => ({
+        "العنوان": p.title,
+        "النوع": p.serviceType,
+        "الحالة": p.pmStatus ?? "",
+        "نشط": p.isActive ? "نعم" : "لا",
+      })),
+      "PM"
+    )
+    toast.success(`تم تصدير ${list.length} مخطط`)
+  }
+
+  const rows = [
+    { name: "تقرير الأصول", hint: `${(assets.data ?? []).length.toLocaleString("en-US")} أصل`, done: !!assets.data, action: exportAssets },
+    { name: "تقرير الصيانة الوقائية PM", hint: `${(pm.data ?? []).length.toLocaleString("en-US")} مخطط`, done: !!pm.data, action: exportPm },
+    { name: "تقرير أوامر العمل WO", hint: `${(wos.data ?? []).length.toLocaleString("en-US")} أمر`, done: !!wos.data, action: exportWorkOrders },
+  ]
 
   function distributionRows(): [string, number][] {
     return exportReport.rows.map((row) => [String(row.status ?? ""), Number(row.count ?? 0)])
@@ -111,9 +155,9 @@ export default function ReportsPage() {
               <CardDescription>{r.hint}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button size="sm" variant="outline" disabled={!r.done} onClick={exportCsvPreview}>
+              <Button size="sm" variant="outline" disabled={!r.done} onClick={r.action}>
                 <Download className="size-4" />
-                تجربة تصدير CSV
+                تصدير Excel
               </Button>
             </CardContent>
           </Card>

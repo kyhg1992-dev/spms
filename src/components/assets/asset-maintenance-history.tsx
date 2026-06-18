@@ -1,35 +1,32 @@
-import type { Timestamp } from "firebase/firestore"
-import { History } from "lucide-react"
-import { useMemo } from "react"
+import { Download, History, Printer } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useUsersQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
 import { workOrderStatusAr } from "@/lib/labels-ar"
+import { woDayKey, woEffectiveDate as effectiveDate, woMillis } from "@/lib/maintenance-log"
 import { serviceLevelColor } from "@/lib/spms-colors"
-import type { WorkOrder } from "@/models/firestore"
-
-function ts(value: Timestamp | undefined): number {
-  return value && typeof value.toMillis === "function" ? value.toMillis() : 0
-}
-
-/** Most relevant date for ordering/display: closed → completed → updated → created. */
-function effectiveDate(wo: WorkOrder & { id: string }): Timestamp | undefined {
-  return wo.closedAt ?? wo.executionCompletedAt ?? wo.updatedAt ?? wo.createdAt
-}
+import { exportRowsToExcel, fileDateStamp } from "@/lib/xlsx-export"
 
 /**
  * Cumulative maintenance log for a single asset: every work order ever raised on it,
  * with the action performed, the technician, the approver, and the originating request
- * number — so an asset's full history lives in one place.
+ * number. Filterable by period, printable, and exportable to Excel.
  */
 export function AssetMaintenanceHistory({ assetId }: { assetId: string }) {
   const { data, isLoading } = useWorkOrdersQuery()
   const users = useUsersQuery()
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
 
   const nameOf = useMemo(() => {
     const map = new Map((users.data ?? []).map((u) => [u.id, u.displayName || u.email]))
@@ -38,9 +35,40 @@ export function AssetMaintenanceHistory({ assetId }: { assetId: string }) {
 
   const rows = useMemo(() => {
     return (data ?? [])
-      .filter((wo) => wo.assetId === assetId)
-      .sort((a, b) => ts(effectiveDate(b)) - ts(effectiveDate(a)))
-  }, [data, assetId])
+      .filter((wo) => {
+        if (wo.assetId !== assetId) return false
+        const dk = woDayKey(effectiveDate(wo))
+        if (from && (!dk || dk < from)) return false
+        if (to && (!dk || dk > to)) return false
+        return true
+      })
+      .sort((a, b) => woMillis(effectiveDate(b)) - woMillis(effectiveDate(a)))
+  }, [data, assetId, from, to])
+
+  function exportExcel() {
+    if (rows.length === 0) return toast.error("لا سجلات للتصدير")
+    exportRowsToExcel(
+      `سجل-صيانة-${assetId}-${fileDateStamp()}`,
+      rows.map((wo) => ({
+        "التاريخ": formatArDate(effectiveDate(wo)),
+        "الإجراء": wo.serviceLevelNameAr ?? wo.title,
+        "المستوى": wo.serviceLevelCode ?? "",
+        "الفنّي": nameOf(wo.assignedTo ?? wo.assigneeId),
+        "المعتمِد": nameOf(wo.approvedByUid),
+        "رقم الطلب": wo.externalRequestNo ?? "",
+        "الحالة": workOrderStatusAr[String(wo.status)] ?? String(wo.status),
+      })),
+      "Asset Log"
+    )
+    toast.success(`تم تصدير ${rows.length} سجلاً`)
+  }
+
+  function openPrint() {
+    const params = new URLSearchParams({ asset: assetId })
+    if (from) params.set("from", from)
+    if (to) params.set("to", to)
+    window.open(`/print/maintenance-log?${params.toString()}`, "_blank", "noreferrer")
+  }
 
   return (
     <Card className="shadow-sm overflow-hidden">
@@ -53,7 +81,28 @@ export function AssetMaintenanceHistory({ assetId }: { assetId: string }) {
           كل أوامر العمل على هذا الأصل: الإجراء، الفنّي، المعتمِد، ورقم الطلب المرجعي.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-0 px-4 pb-6">
+      <CardContent className="space-y-4 px-4 pb-6">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="h-from" className="text-xs">من</Label>
+            <Input id="h-from" type="date" className="h-9" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="h-to" className="text-xs">إلى</Label>
+            <Input id="h-to" type="date" className="h-9" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+          {(from || to) ? (
+            <Button variant="outline" size="sm" onClick={() => { setFrom(""); setTo("") }}>مسح</Button>
+          ) : null}
+          <div className="ms-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportExcel}>
+              <Download className="size-4" /> Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={openPrint}>
+              <Printer className="size-4" /> طباعة
+            </Button>
+          </div>
+        </div>
         {isLoading ? (
           <div className="space-y-2 py-4">
             <Skeleton className="h-9 w-full" />

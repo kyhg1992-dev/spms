@@ -1,9 +1,8 @@
-import { History, Search, Trash2 } from "lucide-react"
+import { Download, History, Printer, Search, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
-import type { Timestamp } from "firebase/firestore"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,28 +22,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { useAssetsQuery, useUsersQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
 import { workOrderStatusAr } from "@/lib/labels-ar"
+import {
+  TERMINAL_STATUSES as TERMINAL,
+  filterMaintenanceLog,
+  woEffectiveDate as effectiveDate,
+} from "@/lib/maintenance-log"
 import { serviceLevelColor } from "@/lib/spms-colors"
-import type { WorkOrder } from "@/models/firestore"
+import { exportRowsToExcel, fileDateStamp } from "@/lib/xlsx-export"
 import { deleteWorkOrder } from "@/services/firestore/spms-service"
-
-const TERMINAL = new Set(["closed", "cancelled"])
-
-function ts(value: Timestamp | undefined): number {
-  return value && typeof value.toMillis === "function" ? value.toMillis() : 0
-}
-
-function effectiveDate(wo: WorkOrder & { id: string }): Timestamp | undefined {
-  return wo.closedAt ?? wo.executionCompletedAt ?? wo.updatedAt ?? wo.createdAt
-}
-
-/** Local YYYY-MM-DD for a timestamp, to compare against an <input type="date">. */
-function dayKey(value: Timestamp | undefined): string {
-  if (!value || typeof value.toDate !== "function") return ""
-  const d = value.toDate()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${d.getFullYear()}-${m}-${day}`
-}
 
 /**
  * Fleet-wide maintenance log: every work order across all assets, searchable by
@@ -59,7 +44,8 @@ export default function MaintenanceLogPage() {
   const isAdmin = spmsRole === "admin"
 
   const [search, setSearch] = useState("")
-  const [day, setDay] = useState("")
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
   const [status, setStatus] = useState<"all" | "closed" | "active">("all")
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -89,25 +75,46 @@ export default function MaintenanceLogPage() {
     return (uid?: string) => (uid ? map.get(uid) ?? "—" : "—")
   }, [users.data])
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return (data ?? [])
-      .filter((wo) => {
-        if (day && dayKey(effectiveDate(wo)) !== day) return false
-        if (status === "closed" && !TERMINAL.has(String(wo.status))) return false
-        if (status === "active" && TERMINAL.has(String(wo.status))) return false
-        if (!q) return true
+  const rows = useMemo(
+    () => filterMaintenanceLog(data ?? [], assetById, { q: search, from, to, status }),
+    [data, search, from, to, status, assetById]
+  )
+
+  function exportExcel() {
+    if (rows.length === 0) {
+      toast.error("لا نتائج للتصدير")
+      return
+    }
+    exportRowsToExcel(
+      `سجل-الصيانة-${fileDateStamp()}`,
+      rows.map((wo) => {
         const a = assetById.get(wo.assetId)
-        return (
-          (a?.assetCode ?? "").toLowerCase().includes(q) ||
-          (a?.plateNo ?? "").toLowerCase().includes(q) ||
-          (a?.assetName ?? "").toLowerCase().includes(q) ||
-          (wo.externalRequestNo ?? "").toLowerCase().includes(q) ||
-          wo.title.toLowerCase().includes(q)
-        )
-      })
-      .sort((x, y) => ts(effectiveDate(y)) - ts(effectiveDate(x)))
-  }, [data, search, day, status, assetById])
+        return {
+          "التاريخ": formatArDate(effectiveDate(wo)),
+          "الأصل": a?.assetName ?? "",
+          "رقم الأصل": a?.assetCode ?? "",
+          "اللوحة": a?.plateNo ?? "",
+          "الإجراء": wo.serviceLevelNameAr ?? wo.title,
+          "المستوى": wo.serviceLevelCode ?? "",
+          "الفنّي": nameOf(wo.assignedTo ?? wo.assigneeId),
+          "المعتمِد": nameOf(wo.approvedByUid),
+          "رقم الطلب": wo.externalRequestNo ?? "",
+          "الحالة": workOrderStatusAr[String(wo.status)] ?? String(wo.status),
+        }
+      }),
+      "Maintenance Log"
+    )
+    toast.success(`تم تصدير ${rows.length} سجلاً`)
+  }
+
+  function openPrint() {
+    const params = new URLSearchParams()
+    if (search.trim()) params.set("q", search.trim())
+    if (from) params.set("from", from)
+    if (to) params.set("to", to)
+    if (status !== "all") params.set("status", status)
+    window.open(`/print/maintenance-log?${params.toString()}`, "_blank", "noreferrer")
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,8 +149,12 @@ export default function MaintenanceLogPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="day" className="text-xs">اليوم</Label>
-              <Input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} />
+              <Label htmlFor="from" className="text-xs">من</Label>
+              <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="to" className="text-xs">إلى</Label>
+              <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">الحالة</Label>
@@ -156,9 +167,18 @@ export default function MaintenanceLogPage() {
                 </SelectContent>
               </Select>
             </div>
-            {(search || day || status !== "all") ? (
-              <Button variant="outline" onClick={() => { setSearch(""); setDay(""); setStatus("all") }}>مسح</Button>
+            {(search || from || to || status !== "all") ? (
+              <Button variant="outline" onClick={() => { setSearch(""); setFrom(""); setTo(""); setStatus("all") }}>مسح</Button>
             ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportExcel}>
+              <Download className="size-4" /> تصدير Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={openPrint}>
+              <Printer className="size-4" /> طباعة التقرير
+            </Button>
           </div>
 
           {isLoading ? (

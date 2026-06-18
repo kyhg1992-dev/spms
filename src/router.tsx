@@ -37,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "/scan/:assetId", element: lazyPage(() => import("@/pages/spms/scan-asset-page")) },
       { path: "/print/asset/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-card-print-page")) },
       { path: "/print/asset-report/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-report-print-page")) },
+      { path: "/print/maintenance-log", element: lazyPage(() => import("@/pages/spms/maintenance-log-print-page")) },
       { path: "/print/sticker/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-sticker-print-page")) },
       { path: "/print/work-order/:workOrderId", element: lazyPage(() => import("@/pages/spms/work-orders/work-order-card-print-page")) },
       {
