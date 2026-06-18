@@ -27,6 +27,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useAssetsQuery, useMaintenanceTemplatesQuery, useUsersQuery } from "@/hooks/use-spms-data"
 import { ASSET_CATEGORY_IDS, DEFAULT_ASSET_CATEGORY, assetCategoryAr } from "@/lib/asset-categories"
 import { KNOWN_SITE_NAMES } from "@/lib/saudi-locations"
+import { sequenceOccurrenceLabels } from "@/lib/maintenance-sequence"
 import { deleteAssetDownloadUrl, uploadAssetPrimaryImage } from "@/lib/storage-asset-image"
 import type { Asset } from "@/models/firestore"
 import { assetFormSchema, type AssetFormInput } from "@/schemas/asset"
@@ -74,6 +75,7 @@ function formDefaults(asset?: Asset & { id: string }): AssetFormInput {
       qrPayload: "",
       maintenanceTemplateId: "",
       lastServiceCode: "",
+      lastServiceIndex: undefined,
       lastServiceReading: 0,
       latitude: undefined,
       longitude: undefined,
@@ -104,6 +106,7 @@ function formDefaults(asset?: Asset & { id: string }): AssetFormInput {
     qrPayload: asset.qrPayload ?? "",
     maintenanceTemplateId: asset.maintenanceTemplateId ?? "",
     lastServiceCode: asset.lastServiceCode ?? "",
+    lastServiceIndex: asset.lastServiceIndex,
     lastServiceReading: asset.lastServiceReading ?? 0,
     latitude: asset.latitude,
     longitude: asset.longitude,
@@ -136,6 +139,10 @@ function toWritePayload(values: AssetFormInput, imageUrl: string): Omit<Asset, "
     lastServiceCode: values.lastServiceCode.trim()
       ? (values.lastServiceCode.trim().toUpperCase() as Asset["lastServiceCode"])
       : undefined,
+    lastServiceIndex:
+      typeof values.lastServiceIndex === "number" && values.lastServiceIndex >= 0
+        ? values.lastServiceIndex
+        : undefined,
     lastServiceReading: values.lastServiceReading || undefined,
     latitude: typeof values.latitude === "number" ? values.latitude : undefined,
     longitude: typeof values.longitude === "number" ? values.longitude : undefined,
@@ -168,8 +175,13 @@ export function AssetFormDialog({ open, onOpenChange, mode, asset }: AssetFormDi
 
   const selectedTemplateId = form.watch("maintenanceTemplateId")
   const selectedTemplate = (templates ?? []).find((t) => t.id === selectedTemplateId)
-  const templateCodes = selectedTemplate
-    ? Array.from(new Set(selectedTemplate.sequence ?? []))
+  // Each position in the rotation, labelled so repeats are distinct (D1/D2/D3).
+  const sequenceSteps = selectedTemplate
+    ? sequenceOccurrenceLabels(selectedTemplate.sequence ?? []).map((label, index) => ({
+        index,
+        code: selectedTemplate.sequence[index],
+        label,
+      }))
     : []
 
 
@@ -187,6 +199,14 @@ export function AssetFormDialog({ open, onOpenChange, mode, asset }: AssetFormDi
     if (!spmsRole || !user?.uid) {
       toast.error("لم يتم تحميل صلاحية المستخدم.")
       return
+    }
+
+    // Keep the rotation cursor consistent: drop a last-service position that no
+    // longer fits the selected template (e.g. the template was changed).
+    const seqLen = selectedTemplate?.sequence.length ?? 0
+    if (!selectedTemplate || (typeof values.lastServiceIndex === "number" && values.lastServiceIndex >= seqLen)) {
+      values.lastServiceIndex = undefined
+      values.lastServiceCode = ""
     }
 
     setSubmitting(true)
@@ -486,12 +506,21 @@ export function AssetFormDialog({ open, onOpenChange, mode, asset }: AssetFormDi
                 <div className="space-y-2">
                   <Label>آخر خدمة تمّت</Label>
                   <Controller
-                    name="lastServiceCode"
+                    name="lastServiceIndex"
                     control={form.control}
                     render={({ field }) => (
                       <Select
-                        value={field.value?.trim() ? field.value : "__none__"}
-                        onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                        value={typeof field.value === "number" ? String(field.value) : "__none__"}
+                        onValueChange={(v) => {
+                          if (v === "__none__") {
+                            field.onChange(undefined)
+                            form.setValue("lastServiceCode", "")
+                            return
+                          }
+                          const i = Number(v)
+                          field.onChange(i)
+                          form.setValue("lastServiceCode", selectedTemplate?.sequence[i] ?? "")
+                        }}
                         disabled={!selectedTemplate}
                       >
                         <SelectTrigger>
@@ -499,8 +528,10 @@ export function AssetFormDialog({ open, onOpenChange, mode, asset }: AssetFormDi
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">— لا يوجد</SelectItem>
-                          {templateCodes.map((code) => (
-                            <SelectItem key={code} value={code}>{code}</SelectItem>
+                          {sequenceSteps.map((step) => (
+                            <SelectItem key={step.index} value={String(step.index)}>
+                              {step.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

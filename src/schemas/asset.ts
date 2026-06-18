@@ -26,6 +26,8 @@ export const assetFormSchema = z.object({
   qrPayload: z.string().trim().max(2000),
   maintenanceTemplateId: z.string().trim().max(80),
   lastServiceCode: z.string().trim().max(2),
+  /** Position of the last performed service within the template sequence (D1/D2/D3…). */
+  lastServiceIndex: z.number().int().min(0).max(1000).optional(),
   lastServiceReading: z.number().min(0, "لا يمكن أن تكون سالبة").max(1_000_000_000),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
