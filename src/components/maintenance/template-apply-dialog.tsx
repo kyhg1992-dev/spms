@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { useAssetsQuery } from "@/hooks/use-spms-data"
 import { assetCategoryAr } from "@/lib/asset-categories"
+import { equipmentClassLabel } from "@/lib/equipment-classes"
 import { updateAsset } from "@/services/firestore/spms-service"
 
 type Props = {
@@ -36,13 +38,35 @@ export function TemplateApplyDialog({ open, onOpenChange, templateId, templateNa
   const queryClient = useQueryClient()
   const assets = useAssetsQuery()
   const [category, setCategory] = useState<"all" | "vehicles" | "equipment">("all")
+  const [eqClass, setEqClass] = useState<string>("all")
+  const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
 
-  const rows = useMemo(
-    () => (assets.data ?? []).filter((a) => category === "all" || a.category === category),
-    [assets.data, category]
-  )
+  // Distinct equipment classes present in the fleet (e.g. FORKLIFT, PIC, LDR, VDT, TRU).
+  const classes = useMemo(() => {
+    const set = new Set<string>()
+    for (const a of assets.data ?? []) {
+      const c = a.equipmentClass?.trim().toUpperCase()
+      if (c) set.add(c)
+    }
+    return Array.from(set).sort()
+  }, [assets.data])
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return (assets.data ?? []).filter((a) => {
+      if (category !== "all" && a.category !== category) return false
+      if (eqClass !== "all" && (a.equipmentClass?.trim().toUpperCase() ?? "") !== eqClass) return false
+      if (!q) return true
+      return (
+        a.assetName.toLowerCase().includes(q) ||
+        a.assetCode.toLowerCase().includes(q) ||
+        (a.plateNo ?? "").toLowerCase().includes(q) ||
+        (a.equipmentClass ?? "").toLowerCase().includes(q)
+      )
+    })
+  }, [assets.data, category, eqClass, search])
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -87,20 +111,38 @@ export function TemplateApplyDialog({ open, onOpenChange, templateId, templateNa
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between gap-2">
-          <Select value={category} onValueChange={(v) => setCategory(v as typeof category)}>
-            <SelectTrigger size="sm" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">كل الفئات</SelectItem>
-              <SelectItem value="vehicles">مركبات</SelectItem>
-              <SelectItem value="equipment">معدات</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={selectAll}>تحديد الكل</Button>
-            <Button variant="outline" size="sm" onClick={clearAll}>مسح</Button>
+        <div className="space-y-2">
+          <Input
+            placeholder="بحث بالاسم أو الرقم أو اللوحة أو التصنيف…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={category} onValueChange={(v) => setCategory(v as typeof category)}>
+              <SelectTrigger size="sm" className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الفئات</SelectItem>
+                <SelectItem value="vehicles">مركبات</SelectItem>
+                <SelectItem value="equipment">معدات</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={eqClass} onValueChange={setEqClass}>
+              <SelectTrigger size="sm" className="w-44">
+                <SelectValue placeholder="التصنيف" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل التصنيفات</SelectItem>
+                {classes.map((c) => (
+                  <SelectItem key={c} value={c}>{equipmentClassLabel(c)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="ms-auto flex gap-2">
+              <Button variant="outline" size="sm" onClick={selectAll}>تحديد الكل</Button>
+              <Button variant="outline" size="sm" onClick={clearAll}>مسح</Button>
+            </div>
           </div>
         </div>
 
@@ -115,7 +157,13 @@ export function TemplateApplyDialog({ open, onOpenChange, templateId, templateNa
                   <span className="font-medium">{a.assetName}</span>
                   <span className="text-muted-foreground"> · {a.assetCode}</span>
                 </span>
-                <Badge variant="outline" className="text-[11px]">{assetCategoryAr(a.category)}</Badge>
+                {a.equipmentClass?.trim() ? (
+                  <Badge variant="outline" className="text-[11px]" title={equipmentClassLabel(a.equipmentClass)}>
+                    {a.equipmentClass.trim().toUpperCase()}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px]">{assetCategoryAr(a.category)}</Badge>
+                )}
                 {a.maintenanceTemplateId === templateId ? (
                   <Badge variant="secondary" className="text-[11px]">مطبّق</Badge>
                 ) : null}

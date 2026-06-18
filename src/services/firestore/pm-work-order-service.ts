@@ -198,6 +198,19 @@ async function findOpenPMWorkOrder(input: {
   return first ? normalizeWorkOrder(first.id, first.data()) : null
 }
 
+/**
+ * Any non-terminal work order already open on this asset. Used to block opening a
+ * second request while one is still being processed. Queries by assetId only
+ * (single-field, auto-indexed) and filters status in memory — an asset has few WOs.
+ */
+async function findActiveWorkOrderForAsset(assetId: string): Promise<(WorkOrder & { id: string }) | null> {
+  const snap = await getDocs(query(collection(db, "workOrders"), where("assetId", "==", assetId)))
+  const active = snap.docs
+    .map((d) => normalizeWorkOrder(d.id, d.data()))
+    .find((wo) => (ACTIVE_PM_WORK_ORDER_STATUSES as string[]).includes(wo.status))
+  return active ?? null
+}
+
 async function latestReading(assetId: string, kind: MeterReading["kind"]): Promise<(MeterReading & { id: string }) | null> {
   const qRef = query(
     collection(db, "meterReadings"),
@@ -363,6 +376,14 @@ export async function generateServiceWorkOrderFromAsset(input: {
     if (!asset.maintenanceTemplateId) throw new Error("الأصل غير مرتبط بقالب صيانة")
     const template = await loadMaintenanceTemplate(asset.maintenanceTemplateId)
     if (!template) throw new Error("قالب الصيانة غير موجود")
+
+    // Block opening a second request while one is still under processing.
+    const existing = await findActiveWorkOrderForAsset(asset.id)
+    if (existing) {
+      return errorState<{ workOrderId: string }>(
+        `يوجد أمر عمل قيد المعالجة بالفعل لهذا الأصل (${existing.serviceLevelCode ?? existing.title}). أغلقه أولاً قبل فتح أمر جديد.`
+      )
+    }
 
     const currentReading =
       template.meterKind === "odometer" ? asset.odometer ?? 0 : asset.operatingHours ?? 0
