@@ -1,6 +1,8 @@
-import { History, Search } from "lucide-react"
+import { History, Search, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 import type { Timestamp } from "firebase/firestore"
 
 import { Badge } from "@/components/ui/badge"
@@ -8,13 +10,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAuth } from "@/contexts/auth-context"
 import { useAssetsQuery, useUsersQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
 import { workOrderStatusAr } from "@/lib/labels-ar"
 import { serviceLevelColor } from "@/lib/spms-colors"
 import type { WorkOrder } from "@/models/firestore"
+import { deleteWorkOrder } from "@/services/firestore/spms-service"
+
+const TERMINAL = new Set(["closed", "cancelled"])
 
 function ts(value: Timestamp | undefined): number {
   return value && typeof value.toMillis === "function" ? value.toMillis() : 0
@@ -41,9 +54,31 @@ export default function MaintenanceLogPage() {
   const { data, isLoading } = useWorkOrdersQuery()
   const assets = useAssetsQuery()
   const users = useUsersQuery()
+  const { spmsRole } = useAuth()
+  const queryClient = useQueryClient()
+  const isAdmin = spmsRole === "admin"
 
   const [search, setSearch] = useState("")
   const [day, setDay] = useState("")
+  const [status, setStatus] = useState<"all" | "closed" | "active">("all")
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function remove(id: string) {
+    if (!isAdmin) return
+    if (!window.confirm("حذف هذا السجل نهائياً؟ لا يمكن التراجع.")) return
+    setBusyId(id)
+    try {
+      const res = await deleteWorkOrder("admin", id)
+      if (res.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success("تم حذف السجل")
+      await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const assetById = useMemo(
     () => new Map((assets.data ?? []).map((a) => [a.id, a])),
@@ -59,6 +94,8 @@ export default function MaintenanceLogPage() {
     return (data ?? [])
       .filter((wo) => {
         if (day && dayKey(effectiveDate(wo)) !== day) return false
+        if (status === "closed" && !TERMINAL.has(String(wo.status))) return false
+        if (status === "active" && TERMINAL.has(String(wo.status))) return false
         if (!q) return true
         const a = assetById.get(wo.assetId)
         return (
@@ -70,7 +107,7 @@ export default function MaintenanceLogPage() {
         )
       })
       .sort((x, y) => ts(effectiveDate(y)) - ts(effectiveDate(x)))
-  }, [data, search, day, assetById])
+  }, [data, search, day, status, assetById])
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,8 +145,19 @@ export default function MaintenanceLogPage() {
               <Label htmlFor="day" className="text-xs">اليوم</Label>
               <Input id="day" type="date" value={day} onChange={(e) => setDay(e.target.value)} />
             </div>
-            {(search || day) ? (
-              <Button variant="outline" onClick={() => { setSearch(""); setDay("") }}>مسح</Button>
+            <div className="space-y-1.5">
+              <Label className="text-xs">الحالة</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="active">قيد المعالجة</SelectItem>
+                  <SelectItem value="closed">مغلقة/ملغاة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(search || day || status !== "all") ? (
+              <Button variant="outline" onClick={() => { setSearch(""); setDay(""); setStatus("all") }}>مسح</Button>
             ) : null}
           </div>
 
@@ -135,6 +183,7 @@ export default function MaintenanceLogPage() {
                     <TableHead>المعتمِد</TableHead>
                     <TableHead>رقم الطلب</TableHead>
                     <TableHead>الحالة</TableHead>
+                    {isAdmin ? <TableHead className="w-10" /> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -176,6 +225,22 @@ export default function MaintenanceLogPage() {
                         <TableCell>
                           <Badge variant="outline">{workOrderStatusAr[String(wo.status)] ?? wo.status}</Badge>
                         </TableCell>
+                        {isAdmin ? (
+                          <TableCell>
+                            {TERMINAL.has(String(wo.status)) ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 text-destructive"
+                                aria-label="حذف السجل"
+                                disabled={busyId === wo.id}
+                                onClick={() => void remove(wo.id)}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            ) : null}
+                          </TableCell>
+                        ) : null}
                       </TableRow>
                     )
                   })}

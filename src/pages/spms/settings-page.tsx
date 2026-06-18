@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import RoleGate from "@/components/auth/role-gate"
+import { DangerZone } from "@/components/settings/danger-zone"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -206,6 +207,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <DangerZone />
     </div>
   )
 }

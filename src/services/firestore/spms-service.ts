@@ -221,6 +221,10 @@ export async function deleteWorkOrder(role: UserRole, id: string) {
   return deleteEntity(role, "workOrders", id)
 }
 
+export async function deleteMeterReading(role: UserRole, id: string) {
+  return deleteEntity(role, "meterReadings", id)
+}
+
 export async function transitionWorkOrder(
   role: UserRole,
   input: {

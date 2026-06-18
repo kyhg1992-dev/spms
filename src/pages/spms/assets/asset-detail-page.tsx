@@ -1,4 +1,4 @@
-import { ArrowRight, ImageIcon, Printer, QrCode, Sticker, Wrench } from "lucide-react"
+import { ArrowRight, FileText, ImageIcon, Printer, QrCode, Sticker, Wrench } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 import { QRCodeSVG } from "qrcode.react"
@@ -128,6 +128,12 @@ export default function AssetDetailPage() {
             <Link to={`/print/asset/${asset.id}`} target="_blank" rel="noreferrer">
               <Printer className="size-4" aria-hidden />
               كرت الصيانة
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/print/asset-report/${asset.id}`} target="_blank" rel="noreferrer">
+              <FileText className="size-4" aria-hidden />
+              تقرير مفصّل
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">

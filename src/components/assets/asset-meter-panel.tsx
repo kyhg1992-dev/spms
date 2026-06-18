@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -26,7 +27,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useMeterReadingsQuery } from "@/hooks/use-spms-data"
 import { formatArDateTime } from "@/lib/format"
 import type { MeterReadingKind } from "@/models/firestore"
-import { createMeterReadingWithPMEngine } from "@/services/firestore/spms-service"
+import { createMeterReadingWithPMEngine, deleteMeterReading } from "@/services/firestore/spms-service"
 import { canAccess } from "@/services/firestore/permissions"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -46,6 +47,25 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
 
   const mayCreate =
     !!spmsRole && canAccess(spmsRole, "meterReadings", "create") && !!user?.uid
+  const isAdmin = spmsRole === "admin"
+  const [delBusy, setDelBusy] = useState<string | null>(null)
+
+  async function removeReading(id: string) {
+    if (!isAdmin) return
+    if (!window.confirm("حذف هذه القراءة نهائياً؟")) return
+    setDelBusy(id)
+    try {
+      const res = await deleteMeterReading("admin", id)
+      if (res.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success("تم حذف القراءة")
+      await qc.invalidateQueries({ queryKey: ["meterReadings", assetId] })
+    } finally {
+      setDelBusy(null)
+    }
+  }
 
   const latestSameKind =
     readings.data?.find((r) => r.kind === kind) ?? undefined
@@ -167,12 +187,13 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                     <TableHead>القيمة</TableHead>
                     <TableHead>الفرق عن السابق</TableHead>
                     <TableHead>الوقت</TableHead>
+                    {isAdmin ? <TableHead className="w-10" /> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(readings.data ?? []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground text-center">
+                      <TableCell colSpan={isAdmin ? 5 : 4} className="text-muted-foreground text-center">
                         لم تُدرج أي قراءات بعد.
                       </TableCell>
                     </TableRow>
@@ -183,6 +204,20 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                         <TableCell className="tabular-nums">{r.value.toLocaleString("en-US")}</TableCell>
                         <TableCell className="tabular-nums">{r.deltaFromPrevious ?? "—"}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{formatArDateTime(r.updatedAt)}</TableCell>
+                        {isAdmin ? (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 text-destructive"
+                              aria-label="حذف القراءة"
+                              disabled={delBusy === r.id}
+                              onClick={() => void removeReading(r.id)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TableCell>
+                        ) : null}
                       </TableRow>
                     ))
                   )}
