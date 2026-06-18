@@ -1,23 +1,21 @@
 import { Clock } from "lucide-react"
 import { useEffect, useState } from "react"
 
-const fmtTime = new Intl.DateTimeFormat("ar", {
+const fmtTime = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
   second: "2-digit",
   hour12: true,
-  numberingSystem: "latn",
 })
-const fmtDay = new Intl.DateTimeFormat("ar", { weekday: "long" })
-const fmtDate = new Intl.DateTimeFormat("ar", {
+const fmtDay = new Intl.DateTimeFormat("en-GB", { weekday: "long" })
+const fmtDate = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "long",
   year: "numeric",
   calendar: "gregory",
-  numberingSystem: "latn",
 })
 
-/** Live clock + Arabic day/date for the dashboard header. Updates every second. */
+/** Live clock + English day/date for the dashboard header. Updates every second. */
 export function LiveClock() {
   const [now, setNow] = useState(() => new Date())
 

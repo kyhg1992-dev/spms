@@ -289,9 +289,9 @@ function DetailGrid({ asset }: { asset: AssetRow }) {
     { label: "وحدة العمل المسؤولة", value: asset.businessUnit?.trim() || asset.department?.trim() || "—" },
     {
       label: "ساعات التشغيل التراكمية",
-      value: asset.operatingHours.toLocaleString("ar-SA"),
+      value: asset.operatingHours.toLocaleString("en-US"),
     },
-    { label: "عداد الكيلومترات", value: asset.odometer.toLocaleString("ar-SA") },
+    { label: "عداد الكيلومترات", value: asset.odometer.toLocaleString("en-US") },
     {
       label: "تاريخ الشراء",
       value: asset.purchaseDate ? formatArDate(asset.purchaseDate) : "—",

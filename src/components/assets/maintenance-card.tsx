@@ -5,12 +5,11 @@ import { assetCategoryAr } from "@/lib/asset-categories"
 import { assetStatusAr, pmServiceTypeAr } from "@/lib/labels-ar"
 import type { Asset, PMSchedule } from "@/models/firestore"
 
-const issueDateFmt = new Intl.DateTimeFormat("ar", {
+const issueDateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "long",
   year: "numeric",
   calendar: "gregory",
-  numberingSystem: "latn",
 })
 
 type MaintenanceCardProps = {

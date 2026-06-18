@@ -61,9 +61,9 @@ export default function ReportsPage() {
   const excelReady = toExcelReadyReport(exportReport, "WO Status")
 
   const rows = [
-    { name: "تقرير الأصول", hint: `${(assets.data ?? []).length.toLocaleString("ar-SA")} أصل`, done: !!assets.data },
-    { name: "تقرير الامتثال PM", hint: `${(pm.data ?? []).length.toLocaleString("ar-SA")} مخطط`, done: !!pm.data },
-    { name: "تقرير وقت التوقف WO", hint: `${(wos.data ?? []).length.toLocaleString("ar-SA")} أمر`, done: !!wos.data },
+    { name: "تقرير الأصول", hint: `${(assets.data ?? []).length.toLocaleString("en-US")} أصل`, done: !!assets.data },
+    { name: "تقرير الامتثال PM", hint: `${(pm.data ?? []).length.toLocaleString("en-US")} مخطط`, done: !!pm.data },
+    { name: "تقرير وقت التوقف WO", hint: `${(wos.data ?? []).length.toLocaleString("en-US")} أمر`, done: !!wos.data },
   ]
 
   function exportCsvPreview() {

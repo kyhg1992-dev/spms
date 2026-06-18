@@ -67,7 +67,7 @@ export default function AssetStickerPrintPage() {
               <div className="text-[11px] text-slate-600" dir="ltr">{asset.assetCode} · {asset.plateNo}</div>
               {next ? (
                 <div className="mt-1 text-[12px] font-medium">
-                  عند {nextAt.toLocaleString("ar-SA")} {unit}
+                  عند {nextAt.toLocaleString("en-US")} {unit}
                   {next.isDue ? <span className="text-red-700"> · مستحقة الآن</span> : null}
                 </div>
               ) : (

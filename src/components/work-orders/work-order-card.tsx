@@ -15,12 +15,11 @@ const ACTION_AR: Record<MaintenanceActionCode, string> = {
   REFILL: "تعبئة",
 }
 
-const issueDateFmt = new Intl.DateTimeFormat("ar", {
+const issueDateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "long",
   year: "numeric",
   calendar: "gregory",
-  numberingSystem: "latn",
 })
 
 type Props = {

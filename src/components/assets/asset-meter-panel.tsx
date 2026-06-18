@@ -139,7 +139,7 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                   />
                   {latestSameKind ? (
                     <p className="text-muted-foreground text-xs">
-                      الإدخال الأخير: {latestSameKind.value.toLocaleString("ar-SA")} —
+                      الإدخال الأخير: {latestSameKind.value.toLocaleString("en-US")} —
                       التاريخ{" "}
                       {formatArDateTime(latestSameKind.updatedAt)}
                     </p>
@@ -180,7 +180,7 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                     (readings.data ?? []).map((r) => (
                       <TableRow key={r.id}>
                         <TableCell>{KIND_AR[r.kind]}</TableCell>
-                        <TableCell className="tabular-nums">{r.value.toLocaleString("ar-SA")}</TableCell>
+                        <TableCell className="tabular-nums">{r.value.toLocaleString("en-US")}</TableCell>
                         <TableCell className="tabular-nums">{r.deltaFromPrevious ?? "—"}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{formatArDateTime(r.updatedAt)}</TableCell>
                       </TableRow>
