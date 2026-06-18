@@ -1,6 +1,8 @@
-import { Printer } from "lucide-react"
-import { useMemo } from "react"
+import { Printer, Save } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { WorkOrderOperationalActions } from "@/components/work-orders/work-order-operational-actions"
 import { WorkOrderPendingBadge } from "@/components/work-orders/work-order-pending-badge"
@@ -9,13 +11,16 @@ import { WorkOrderTimeline } from "@/components/work-orders/work-order-timeline"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAuth } from "@/contexts/auth-context"
 import { useActivityLogsQuery, useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate, formatArDateTime } from "@/lib/format"
 import { workOrderPriorityAr, workOrderStatusAr } from "@/lib/labels-ar"
 import { buildWorkOrderTimeline } from "@/lib/work-order-timeline"
 import type { WorkOrder } from "@/models/firestore"
+import { updateWorkOrder } from "@/services/firestore/spms-service"
 
 export default function WorkOrderDetailPage() {
   const { workOrderId } = useParams<{ workOrderId: string }>()
@@ -82,6 +87,8 @@ export default function WorkOrderDetailPage() {
 
       <WorkOrderOperationalActions workOrder={wo} />
 
+      <RequestRefCard workOrder={wo} />
+
       <ServiceTaskTable workOrder={wo} />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -135,6 +142,59 @@ export default function WorkOrderDetailPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }) {
+  const { spmsRole } = useAuth()
+  const queryClient = useQueryClient()
+  const canEdit = spmsRole === "admin" || spmsRole === "manager"
+  const [value, setValue] = useState(workOrder.externalRequestNo ?? "")
+  const [busy, setBusy] = useState(false)
+
+  const dirty = value.trim() !== (workOrder.externalRequestNo ?? "").trim()
+
+  async function save() {
+    if (!spmsRole) return
+    setBusy(true)
+    try {
+      const res = await updateWorkOrder(spmsRole, workOrder.id, {
+        externalRequestNo: value.trim() || undefined,
+      })
+      if (res.error) {
+        toast.error(res.error)
+        return
+      }
+      toast.success("تم حفظ رقم الطلب المرجعي")
+      await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card className="rounded-xl border-border/70 shadow-sm print:hidden">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">رقم الطلب المرجعي (النظام الأساسي)</CardTitle>
+        <CardDescription>اربط أمر العمل بالطلب المفتوح في النظام الأساسي (الكام سيستم).</CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-end gap-2">
+        <div className="flex-1 space-y-1.5">
+          <Input
+            dir="ltr"
+            placeholder="مثل: REQ-2026-014532"
+            value={value}
+            disabled={!canEdit || busy}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        </div>
+        {canEdit ? (
+          <Button type="button" disabled={!dirty || busy} onClick={() => void save()}>
+            <Save className="size-4" /> حفظ
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
   )
 }
 

@@ -75,6 +75,7 @@ service cloud.firestore {
         "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "internalNotes",
         "estimatedCost", "actualCost", "approvalRequired", "approvedByUid", "approvedAt", "rejectedAt",
         "rejectedByUid", "rejectionReason", "pmScheduleId", "sourceType", "sourceRef",
+        "externalRequestNo",
         "serviceLevelCode", "serviceLevelNameAr", "serviceLevelIndex", "rotationAdvanced", "serviceTasks",
         "lastPublicComment", "createdAt", "updatedAt"
       ];
@@ -129,7 +130,7 @@ service cloud.firestore {
       return isRequester()
         && request.resource.data.keys().hasOnly([
           "title", "description", "assetId", "requesterId", "status", "lifecycleStatus",
-          "priority", "dueDate", "sourceType", "sourceRef", "lastPublicComment",
+          "priority", "dueDate", "sourceType", "sourceRef", "externalRequestNo", "lastPublicComment",
           "createdAt", "updatedAt"
         ])
         && request.resource.data.requesterId == request.auth.uid

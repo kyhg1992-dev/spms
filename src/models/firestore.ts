@@ -218,6 +218,8 @@ export type WorkOrder = BaseDoc & {
   pmScheduleId?: string
   sourceType?: "PM" | "MANUAL" | "REQUEST"
   sourceRef?: string
+  /** Reference number of the originating request in the main/legacy system (CAM). */
+  externalRequestNo?: string
   /** Service level (A/B/C/D) this PM work order performs, from the maintenance template. */
   serviceLevelCode?: MaintenanceServiceCode
   serviceLevelNameAr?: string

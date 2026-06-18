@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { AssetBarcode } from "@/components/assets/asset-barcode"
 import { AssetDeleteDialog } from "@/components/assets/asset-delete-dialog"
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog"
+import { AssetMaintenanceHistory } from "@/components/assets/asset-maintenance-history"
 import { AssetMeterPanel } from "@/components/assets/asset-meter-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -262,6 +263,8 @@ export default function AssetDetailPage() {
       </div>
 
       <AssetMeterPanel assetId={asset.id} />
+
+      <AssetMaintenanceHistory assetId={asset.id} />
 
       <AssetFormDialog open={editOpen} onOpenChange={setEditOpen} mode="edit" asset={asset} />
       <AssetDeleteDialog
