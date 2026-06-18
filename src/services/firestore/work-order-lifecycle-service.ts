@@ -420,3 +420,65 @@ export async function closeWorkOrderLifecycle(input: ClosureInput): Promise<Asyn
     actorRole: input.actorRole,
   })
 }
+
+/**
+ * One-click finalization: approve + close + advance the rotation, in a single batch.
+ * Collapses the old approve→complete→close trio into one manager action. Valid once
+ * the technician has finished execution (status WAITING_APPROVAL or COMPLETED).
+ */
+export async function finalizeWorkOrderLifecycle(input: ClosureInput): Promise<AsyncState<LifecycleResult>> {
+  if (!managerRole(input.actorRole)) {
+    return errorState<LifecycleResult>("الاعتماد والإغلاق متاح للمدير أو المسؤول فقط")
+  }
+  try {
+    const { ref, workOrder } = await loadWorkOrder(input.workOrderId)
+    const current = workOrder.lifecycleStatus ?? "OPEN"
+    if (current === "CLOSED" || current === "CANCELLED") {
+      return errorState<LifecycleResult>("أمر العمل مغلق أو ملغى بالفعل")
+    }
+    if (current !== "WAITING_APPROVAL" && current !== "COMPLETED") {
+      return errorState<LifecycleResult>("لا يمكن الاعتماد قبل إنهاء التنفيذ")
+    }
+
+    const batch = writeBatch(db)
+    const advanced = await advanceAssetRotation(batch, workOrder)
+    batch.update(ref, stripUndefined({
+      status: "closed",
+      lifecycleStatus: "CLOSED",
+      approvedByUid: workOrder.approvedByUid ?? input.actorUid,
+      approvedAt: workOrder.approvedAt ?? serverTimestamp(),
+      rejectedAt: null,
+      rejectedByUid: null,
+      rejectionReason: null,
+      closedAt: serverTimestamp(),
+      closedByUid: input.actorUid,
+      rotationAdvanced: advanced ? true : undefined,
+      updatedAt: serverTimestamp(),
+    }))
+    batch.set(doc(collection(db, "activityLogs")), {
+      actorUid: input.actorUid,
+      actionKey: "work_order.finalize",
+      entityType: "work_order",
+      entityId: input.workOrderId,
+      labelAr: "اعتماد وإغلاق أمر العمل",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    await batch.commit()
+    await emitOperationalEventNotifications({
+      actorUid: input.actorUid,
+      event: workOrderEvent({
+        eventType: "WORK_ORDER_COMPLETED",
+        workOrderId: input.workOrderId,
+        title: workOrder.title,
+        targetUserIds: workOrder.assignedTo || workOrder.assigneeId
+          ? [workOrder.assignedTo ?? workOrder.assigneeId ?? ""]
+          : undefined,
+        requesterId: workOrder.requesterId,
+      }),
+    })
+    return doneState({ workOrderId: input.workOrderId, lifecycleStatus: "CLOSED" })
+  } catch (error) {
+    return errorState<LifecycleResult>(error)
+  }
+}

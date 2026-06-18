@@ -94,8 +94,8 @@ export default function WorkOrderDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-xl border-border/70 shadow-md">
           <CardHeader>
-            <CardTitle>التاريخ التشغيلي</CardTitle>
-            <CardDescription>جاهز لمطابقة تدفقات SAP PM / IBM Maximo.</CardDescription>
+            <CardTitle>التواريخ التشغيلية</CardTitle>
+            <CardDescription>تسجيل أمر العمل وآخر تحديث ومواعيد الإغلاق.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-relaxed">
             <TimelineRow title="التسجيل" value={formatArDateTime(wo.createdAt)} />

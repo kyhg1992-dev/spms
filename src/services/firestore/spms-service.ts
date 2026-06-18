@@ -52,6 +52,7 @@ import {
 import {
   approveWorkOrderLifecycle,
   closeWorkOrderLifecycle,
+  finalizeWorkOrderLifecycle,
   reassignWorkOrderLifecycle,
   rejectWorkOrderLifecycle,
   transitionWorkOrderLifecycle,
@@ -308,6 +309,11 @@ export async function rejectWorkOrder(
 
 export async function closeWorkOrder(role: UserRole, workOrderId: string, actorUid: string) {
   return closeWorkOrderLifecycle({ workOrderId, actorUid, actorRole: role })
+}
+
+/** One-click approve + close + advance rotation. */
+export async function finalizeWorkOrder(role: UserRole, workOrderId: string, actorUid: string) {
+  return finalizeWorkOrderLifecycle({ workOrderId, actorUid, actorRole: role })
 }
 
 export async function startTechnicianExecution(

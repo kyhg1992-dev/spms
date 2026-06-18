@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardCheck, FilePenLine, Play, RotateCcw, Send, XCircle } from "lucide-react"
+import { CheckCircle2, ClipboardCheck, FilePenLine, Play, UserCog, XCircle } from "lucide-react"
 import type { ReactNode } from "react"
 import { useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -20,19 +20,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
 import { createOfflineExecutionDraft } from "@/lib/mobile-technician"
 import { canCompleteExecution, canSaveExecutionDraft, canStartExecution } from "@/lib/technician-execution"
-import {
-  getWorkOrderLifecycleStatus,
-  validateWorkOrderTransition,
-} from "@/lib/work-order-lifecycle"
+import { getWorkOrderLifecycleStatus } from "@/lib/work-order-lifecycle"
+import { workOrderPendingOwner } from "@/lib/work-order-pending"
 import type { WorkOrder } from "@/models/firestore"
 import {
-  approveWorkOrder,
-  closeWorkOrder,
   completeTechnicianExecution,
+  finalizeWorkOrder,
   rejectWorkOrder,
   saveTechnicianExecutionDraft,
   startTechnicianExecution,
-  transitionWorkOrder,
 } from "@/services/firestore/spms-service"
 
 type ActionDialog = "draft" | "complete" | "reject" | null
@@ -50,12 +46,13 @@ const text = {
     managerOnly: "متاح للمدير أو مسؤول النظام فقط.",
     start: "بدء التنفيذ",
     draft: "حفظ مسودة",
-    complete: "إكمال التنفيذ",
-    sendApproval: "إرسال للاعتماد",
-    approve: "اعتماد",
-    reject: "رفض",
-    close: "إغلاق",
+    complete: "إنهاء التنفيذ",
+    finalize: "اعتماد وإغلاق",
+    finalizeHint: "متاح بعد إنهاء الفنّي للتنفيذ.",
+    reject: "رفض وإعادة",
+    assign: "إسناد لفنّي",
     reassign: "إعادة إسناد",
+    nextStep: "الخطوة التالية",
     completionNotes: "ملاحظات الإكمال",
     technicianNotes: "ملاحظات الفني",
     laborHours: "ساعات العمل",
@@ -76,12 +73,13 @@ const text = {
     managerOnly: "Available to manager or system admin only.",
     start: "Start Execution",
     draft: "Save Draft",
-    complete: "Complete Execution",
-    sendApproval: "Send to Approval",
-    approve: "Approve",
-    reject: "Reject",
-    close: "Close",
+    complete: "Finish Execution",
+    finalize: "Approve & Close",
+    finalizeHint: "Available after the technician finishes execution.",
+    reject: "Reject & Return",
+    assign: "Assign technician",
     reassign: "Reassign",
+    nextStep: "Next step",
     completionNotes: "Completion Notes",
     technicianNotes: "Technician Notes",
     laborHours: "Labor Hours",
@@ -134,6 +132,12 @@ export function WorkOrderOperationalActions({
   const lifecycleStatus = getWorkOrderLifecycleStatus(workOrder)
   const hasAuth = !!spmsRole && !!user?.uid
   const manager = canManage(spmsRole)
+  const hasAssignee = !!(workOrder.assignedTo?.trim() || workOrder.assigneeId?.trim())
+  const canFinalize = manager && (lifecycleStatus === "WAITING_APPROVAL" || lifecycleStatus === "COMPLETED")
+  const canReject = manager && lifecycleStatus === "WAITING_APPROVAL"
+  const isTerminal = lifecycleStatus === "CLOSED" || lifecycleStatus === "CANCELLED"
+  const assignLabel = hasAssignee ? labels.reassign : labels.assign
+  const nextStepHint = workOrderPendingOwner(workOrder).labelAr
 
   const validation = useMemo(() => {
     const start = canStartExecution(workOrder)
@@ -142,23 +146,8 @@ export function WorkOrderOperationalActions({
       completionNotes: completionNotes.trim() || "ready",
       actualLaborHours: parseNumber(laborHours) ?? 0,
     })
-    const approval = spmsRole
-      ? validateWorkOrderTransition({
-          workOrder,
-          targetStatus: "WAITING_APPROVAL",
-          actorRole: spmsRole,
-          approvalRequired: true,
-        })
-      : { ok: false, errors: [labels.missingAuth] }
-    const close = spmsRole
-      ? validateWorkOrderTransition({
-          workOrder,
-          targetStatus: "CLOSED",
-          actorRole: spmsRole,
-        })
-      : { ok: false, errors: [labels.missingAuth] }
-    return { start, draft, complete, approval, close }
-  }, [completionNotes, labels.missingAuth, laborHours, spmsRole, workOrder])
+    return { start, draft, complete }
+  }, [completionNotes, laborHours, workOrder])
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
@@ -208,7 +197,14 @@ export function WorkOrderOperationalActions({
   return (
     <div dir={dir} className="rounded-xl border border-border/70 bg-card p-3 sm:p-4 print:hidden">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="font-semibold">{labels.title}</p>
+        <div>
+          <p className="font-semibold">{labels.title}</p>
+          {!isTerminal ? (
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {labels.nextStep}: {nextStepHint}
+            </p>
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {offlineDraft ? (
             <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground text-xs">
@@ -265,38 +261,15 @@ export function WorkOrderOperationalActions({
         <Button
           type="button"
           size="sm"
-          variant="outline"
           className="min-h-10 flex-1 sm:flex-none"
-          disabled={!hasAuth || !validation.approval.ok || busyAction !== null}
-          title={!hasAuth ? labels.missingAuth : firstReason(validation.approval.errors, "")}
+          disabled={!hasAuth || !canFinalize || busyAction !== null}
+          title={!manager ? labels.managerOnly : !canFinalize ? labels.finalizeHint : undefined}
           onClick={() =>
-            void runAction(labels.sendApproval, () =>
-              transitionWorkOrder(spmsRole!, {
-                workOrderId: workOrder.id,
-                actorUid: user!.uid,
-                targetStatus: "WAITING_APPROVAL",
-                approvalRequired: true,
-              })
-            )
-          }
-        >
-          <Send className="size-4" />
-          {labels.sendApproval}
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="min-h-10 flex-1 sm:flex-none"
-          disabled={!hasAuth || !manager || lifecycleStatus !== "WAITING_APPROVAL" || busyAction !== null}
-          title={!manager ? labels.managerOnly : undefined}
-          onClick={() =>
-            void runAction(labels.approve, () => approveWorkOrder(spmsRole!, workOrder.id, user!.uid))
+            void runAction(labels.finalize, () => finalizeWorkOrder(spmsRole!, workOrder.id, user!.uid))
           }
         >
           <CheckCircle2 className="size-4" />
-          {labels.approve}
+          {labels.finalize}
         </Button>
 
         <Button
@@ -304,7 +277,7 @@ export function WorkOrderOperationalActions({
           size="sm"
           variant="outline"
           className="min-h-10 flex-1 sm:flex-none"
-          disabled={!hasAuth || !manager || lifecycleStatus !== "WAITING_APPROVAL" || busyAction !== null}
+          disabled={!hasAuth || !canReject || busyAction !== null}
           title={!manager ? labels.managerOnly : undefined}
           onClick={() => setDialog("reject")}
         >
@@ -315,29 +288,14 @@ export function WorkOrderOperationalActions({
         <Button
           type="button"
           size="sm"
-          variant="outline"
+          variant={!hasAssignee && !isTerminal ? "default" : "outline"}
           className="min-h-10 flex-1 sm:flex-none"
-          disabled={!hasAuth || !manager || !validation.close.ok || busyAction !== null}
-          title={!manager ? labels.managerOnly : firstReason(validation.close.errors, "")}
-          onClick={() =>
-            void runAction(labels.close, () => closeWorkOrder(spmsRole!, workOrder.id, user!.uid))
-          }
-        >
-          <CheckCircle2 className="size-4" />
-          {labels.close}
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="min-h-10 flex-1 sm:flex-none"
-          disabled={!hasAuth || !manager || lifecycleStatus === "CLOSED" || lifecycleStatus === "CANCELLED"}
+          disabled={!hasAuth || !manager || isTerminal}
           title={!manager ? labels.managerOnly : undefined}
           onClick={() => setReassignOpen(true)}
         >
-          <RotateCcw className="size-4" />
-          {labels.reassign}
+          <UserCog className="size-4" />
+          {assignLabel}
         </Button>
       </div>
 
