@@ -3,13 +3,12 @@ import {
   createUserWithEmailAndPassword,
   inMemoryPersistence,
   initializeAuth,
-  sendPasswordResetEmail,
   signOut,
   updateProfile,
 } from "firebase/auth"
-import { doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore"
+import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore"
 
-import { auth } from "@/lib/firebase"
+import { db } from "@/lib/firebase"
 import type { UserRole } from "@/models/firestore"
 
 /**
@@ -118,21 +117,26 @@ export async function createUserWithProfile(input: CreateUserInput): Promise<Cre
 }
 
 /**
- * Send a password-reset / set-password link to a user's email. This is the
- * client-safe way for an admin to let a user (re)create their password — directly
- * setting another user's password requires the Firebase Admin SDK (a backend).
+ * Persist the password the admin set for a user, in the admin-only `userSecrets`
+ * collection, so it can be viewed later from user management. Written by the admin's
+ * primary session (which passes the admin-only rule). Plain text by design — keep
+ * the collection admin-restricted.
  */
-export async function sendUserPasswordReset(
-  email: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function setUserSecret(uid: string, password: string): Promise<void> {
+  await setDoc(
+    doc(db, "userSecrets", uid),
+    { password, updatedAt: serverTimestamp() },
+    { merge: true }
+  )
+}
+
+/** Read a user's stored password (admin only). Returns null when none is stored. */
+export async function getUserSecret(uid: string): Promise<string | null> {
   try {
-    await sendPasswordResetEmail(auth, email.trim())
-    return { ok: true }
-  } catch (error) {
-    const code =
-      error && typeof error === "object" && "code" in error ? String((error as { code: string }).code) : ""
-    if (code === "auth/user-not-found") return { ok: false, error: "لا يوجد حساب بهذا البريد" }
-    if (code === "auth/invalid-email") return { ok: false, error: "صيغة البريد غير صحيحة" }
-    return { ok: false, error: "تعذّر إرسال رابط كلمة المرور" }
+    const snap = await getDoc(doc(db, "userSecrets", uid))
+    const value = snap.exists() ? (snap.data() as { password?: unknown }).password : undefined
+    return typeof value === "string" ? value : null
+  } catch {
+    return null
   }
 }

@@ -1,4 +1,4 @@
-import { MoreHorizontal, UserPlus } from "lucide-react"
+import { Copy, Eye, EyeOff, MoreHorizontal, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
@@ -23,9 +23,49 @@ import { formatArDate } from "@/lib/format"
 import { userRoleAr } from "@/lib/labels-ar"
 import type { SpmsUser } from "@/models/firestore"
 import { updateUser } from "@/services/firestore/spms-service"
-import { sendUserPasswordReset } from "@/services/firestore/user-admin-service"
+import { getUserSecret } from "@/services/firestore/user-admin-service"
 
 type UserRow = SpmsUser & { id: string }
+
+/** Admin-only inline reveal of the stored password for a user. */
+function PasswordCell({ uid }: { uid: string }) {
+  const [value, setValue] = useState<string | null>(null)
+  const [shown, setShown] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    if (value === null) {
+      setLoading(true)
+      const p = await getUserSecret(uid)
+      setValue(p ?? "")
+      setLoading(false)
+    }
+    setShown((s) => !s)
+  }
+
+  const hasValue = value !== null && value !== ""
+  return (
+    <div className="flex items-center gap-1" dir="ltr">
+      <span className="font-mono text-xs">
+        {!shown ? "••••••" : loading ? "…" : hasValue ? value : "— غير مخزّنة"}
+      </span>
+      <Button variant="ghost" size="icon" className="size-7" aria-label="إظهار/إخفاء" onClick={() => void toggle()}>
+        {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+      </Button>
+      {shown && hasValue ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label="نسخ"
+          onClick={() => void navigator.clipboard.writeText(value!)}
+        >
+          <Copy className="size-3.5" />
+        </Button>
+      ) : null}
+    </div>
+  )
+}
 
 function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
   const { data, isLoading, error } = useUsersQuery()
@@ -33,21 +73,6 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
   const isAdmin = spmsRole === "admin"
-
-  async function resetPassword(row: UserRow) {
-    if (!isAdmin) return
-    setBusyId(row.id)
-    try {
-      const res = await sendUserPasswordReset(row.email)
-      if (!res.ok) {
-        toast.error(res.error)
-        return
-      }
-      toast.success(`أُرسل رابط تعيين كلمة المرور إلى ${row.email}`)
-    } finally {
-      setBusyId(null)
-    }
-  }
 
   async function toggleActive(row: UserRow) {
     if (!isAdmin) return
@@ -99,6 +124,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                     <TableHead>البريد</TableHead>
                     <TableHead>الدور</TableHead>
                     <TableHead>الحالة</TableHead>
+                    {isAdmin ? <TableHead>كلمة المرور</TableHead> : null}
                     <TableHead>آخر تحديث</TableHead>
                     {isAdmin ? <TableHead className="w-12 text-end">إجراءات</TableHead> : null}
                   </TableRow>
@@ -118,6 +144,9 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                           <Badge variant="destructive">موقوف</Badge>
                         )}
                       </TableCell>
+                      {isAdmin ? (
+                        <TableCell><PasswordCell uid={u.id} /></TableCell>
+                      ) : null}
                       <TableCell className="text-muted-foreground text-sm">{formatArDate(u.updatedAt)}</TableCell>
                       {isAdmin ? (
                         <TableCell className="text-end">
@@ -134,9 +163,6 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onEdit(u)}>تعديل</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => void resetPassword(u)}>
-                                إرسال رابط كلمة المرور
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => void toggleActive(u)}>
                                 {u.isActive ? "تعطيل" : "تفعيل"}

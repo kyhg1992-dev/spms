@@ -196,6 +196,13 @@ service cloud.firestore {
       && request.resource.data.labelAr is string;
     }
 
+    // Admin-only store for user passwords set at creation, so the system admin can
+    // view them. Kept in a SEPARATE collection (not the world-readable users doc) so
+    // only admins can ever read them.
+    match /userSecrets/{uid} {
+      allow read, write: if isSignedIn() && isAdmin();
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;

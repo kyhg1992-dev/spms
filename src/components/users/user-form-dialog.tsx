@@ -26,7 +26,7 @@ import { userRoleAr } from "@/lib/labels-ar"
 import type { SpmsUser, UserRole } from "@/models/firestore"
 import { appendActivityLog } from "@/services/audit"
 import { updateUser } from "@/services/firestore/spms-service"
-import { createUserWithProfile } from "@/services/firestore/user-admin-service"
+import { createUserWithProfile, setUserSecret } from "@/services/firestore/user-admin-service"
 
 const ROLES: UserRole[] = ["admin", "manager", "technician", "requester"]
 
@@ -97,6 +97,8 @@ export function UserFormDialog({ open, onOpenChange, mode, user }: UserFormDialo
           toast.error(res.error)
           return
         }
+        // Store the password (admin-only) so it can be viewed later from user management.
+        await setUserSecret(res.uid, values.password).catch(() => undefined)
         if (actor?.uid) {
           await appendActivityLog({
             actorUid: actor.uid,
