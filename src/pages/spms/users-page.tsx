@@ -23,6 +23,7 @@ import { formatArDate } from "@/lib/format"
 import { userRoleAr } from "@/lib/labels-ar"
 import type { SpmsUser } from "@/models/firestore"
 import { updateUser } from "@/services/firestore/spms-service"
+import { sendUserPasswordReset } from "@/services/firestore/user-admin-service"
 
 type UserRow = SpmsUser & { id: string }
 
@@ -32,6 +33,21 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
   const isAdmin = spmsRole === "admin"
+
+  async function resetPassword(row: UserRow) {
+    if (!isAdmin) return
+    setBusyId(row.id)
+    try {
+      const res = await sendUserPasswordReset(row.email)
+      if (!res.ok) {
+        toast.error(res.error)
+        return
+      }
+      toast.success(`أُرسل رابط تعيين كلمة المرور إلى ${row.email}`)
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   async function toggleActive(row: UserRow) {
     if (!isAdmin) return
@@ -118,6 +134,9 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => onEdit(u)}>تعديل</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => void resetPassword(u)}>
+                                إرسال رابط كلمة المرور
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => void toggleActive(u)}>
                                 {u.isActive ? "تعطيل" : "تفعيل"}

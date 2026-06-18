@@ -62,6 +62,7 @@ export const router = createBrowserRouter([
             ],
           },
           { path: "pm", element: lazyPage(() => import("@/pages/spms/pm-schedules-page")) },
+          { path: "maintenance-log", element: lazyPage(() => import("@/pages/spms/maintenance-log-page")) },
           {
             path: "maintenance-templates",
             element: <Outlet />,

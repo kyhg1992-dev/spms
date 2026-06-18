@@ -1,12 +1,15 @@
 import { deleteApp, initializeApp } from "firebase/app"
 import {
   createUserWithEmailAndPassword,
-  getAuth,
+  inMemoryPersistence,
+  initializeAuth,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
 } from "firebase/auth"
 import { doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore"
 
+import { auth } from "@/lib/firebase"
 import type { UserRole } from "@/models/firestore"
 
 /**
@@ -74,7 +77,9 @@ export async function createUserWithProfile(input: CreateUserInput): Promise<Cre
   const secondary = initializeApp(readFirebaseConfig(), appName)
 
   try {
-    const secondaryAuth = getAuth(secondary)
+    // In-memory persistence isolates this short-lived app's auth from the shared
+    // browser storage, so creating a user never disturbs the admin's own session.
+    const secondaryAuth = initializeAuth(secondary, { persistence: inMemoryPersistence })
     const cred = await createUserWithEmailAndPassword(
       secondaryAuth,
       input.email.trim(),
@@ -109,5 +114,25 @@ export async function createUserWithProfile(input: CreateUserInput): Promise<Cre
     return { ok: false, error: code ? authErrorToArabic(code) : "تعذّر إنشاء المستخدم" }
   } finally {
     await deleteApp(secondary).catch(() => undefined)
+  }
+}
+
+/**
+ * Send a password-reset / set-password link to a user's email. This is the
+ * client-safe way for an admin to let a user (re)create their password — directly
+ * setting another user's password requires the Firebase Admin SDK (a backend).
+ */
+export async function sendUserPasswordReset(
+  email: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim())
+    return { ok: true }
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error ? String((error as { code: string }).code) : ""
+    if (code === "auth/user-not-found") return { ok: false, error: "لا يوجد حساب بهذا البريد" }
+    if (code === "auth/invalid-email") return { ok: false, error: "صيغة البريد غير صحيحة" }
+    return { ok: false, error: "تعذّر إرسال رابط كلمة المرور" }
   }
 }

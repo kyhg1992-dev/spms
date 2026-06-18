@@ -12,6 +12,7 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "nav.scan": { ar: "مسح", en: "Scan" },
   "nav.assets": { ar: "الأصول", en: "Assets" },
   "nav.workOrders": { ar: "أوامر العمل", en: "Work Orders" },
+  "nav.maintenanceLog": { ar: "سجل الصيانة", en: "Maintenance Log" },
   "nav.pm": { ar: "صيانة وقائية", en: "Preventive" },
   "nav.templates": { ar: "قوالب الصيانة", en: "Templates" },
   "nav.notifications": { ar: "الإشعارات", en: "Notifications" },

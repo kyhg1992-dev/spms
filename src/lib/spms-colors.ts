@@ -22,6 +22,7 @@ export const MODULE_COLOR: Record<string, string> = {
   templates: "#4f46e5", // indigo
   notifications: "#e11d48", // rose
   reports: "#7c3aed", // violet
+  maintenanceLog: "#0f766e", // deep teal
   activity: "#0891b2", // cyan
   settings: "#64748b", // slate
   users: "#db2777", // pink
