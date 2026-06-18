@@ -57,8 +57,43 @@ const WA380_COMPREHENSIVE: MaintenanceServiceLevel = {
   ],
 }
 
+/**
+ * SAVETO fleet (km-based): one full cycle = 20 services = 100,000 km, then it
+ * repeats automatically. D appears 15× (D1–D15), with C/A/B/A/C at the 20k steps.
+ * Level task lists start empty — the manager fills them from the SAVETO sheet.
+ */
+const SAVETO_LEVELS: MaintenanceServiceLevel[] = [
+  { code: "A", nameAr: "شاملة", nameEn: "Comprehensive", tasks: [] },
+  { code: "B", nameAr: "كبيرة", nameEn: "Major", tasks: [] },
+  { code: "C", nameAr: "متوسطة", nameEn: "Intermediate", tasks: [] },
+  { code: "D", nameAr: "صغرى", nameEn: "Minor", tasks: [] },
+]
+
 /** Ready-made starter templates the manager can pick and tweak. */
 export const TEMPLATE_LIBRARY: { key: string; label: string; draft: TemplateDraft }[] = [
+  {
+    key: "saveto-km",
+    label: "أسطول SAVETO (كيلومتر) — دورة 100,000 كم",
+    draft: {
+      templateCode: "PM-SAVETO-KM",
+      name: "صيانة أسطول SAVETO",
+      assetTypeLabel: "مركبات SAVETO",
+      triggerMode: "km",
+      meterKind: "odometer",
+      stepInterval: 5000,
+      sequence: [
+        "D", "D", "D", "C",
+        "D", "D", "D", "A",
+        "D", "D", "D", "B",
+        "D", "D", "D", "A",
+        "D", "D", "D", "C",
+      ],
+      levels: SAVETO_LEVELS,
+      isActive: true,
+      description:
+        "كل 5000 كم خدمة. الدورة 20 خطوة (100,000 كم) ثم تتكرّر تلقائياً حتى المليون وما بعده. C/A/B/A/C عند مضاعفات 20 ألف.",
+    },
+  },
   {
     key: "wa380-6",
     label: "رافعة كوماتسو WA380-6 (ساعات)",
