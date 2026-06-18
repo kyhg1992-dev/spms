@@ -167,6 +167,46 @@ async function loadWorkOrder(workOrderId: string) {
   return { ref, workOrder: normalizeWorkOrder(snap.id, snap.data()) }
 }
 
+/**
+ * Advance the asset's maintenance rotation cursor to the position this work order
+ * performed, so the "next service" rolls forward. Stores the authoritative
+ * `lastServiceIndex` (handles repeated codes) plus the code/reading/date. Returns
+ * `true` when it queued an asset update, so the caller can mark the WO advanced and
+ * never double-advance across approve→close.
+ */
+async function advanceAssetRotation(
+  batch: ReturnType<typeof writeBatch>,
+  workOrder: ReturnType<typeof normalizeWorkOrder>
+): Promise<boolean> {
+  if (workOrder.rotationAdvanced) return false
+  if (!workOrder.serviceLevelCode || !workOrder.assetId) return false
+
+  const assetSnap = await getDoc(doc(db, "assets", workOrder.assetId))
+  if (!assetSnap.exists()) return false
+  const asset = normalizeAsset(assetSnap.id, assetSnap.data())
+
+  let reading = asset.operatingHours ?? 0
+  if (asset.maintenanceTemplateId) {
+    const tplSnap = await getDoc(doc(db, "maintenanceTemplates", asset.maintenanceTemplateId))
+    if (tplSnap.exists()) {
+      const tpl = normalizeMaintenanceTemplate(tplSnap.id, tplSnap.data())
+      reading = tpl.meterKind === "odometer" ? asset.odometer ?? 0 : asset.operatingHours ?? 0
+    }
+  }
+
+  batch.update(
+    doc(db, "assets", workOrder.assetId),
+    stripUndefined({
+      lastServiceCode: workOrder.serviceLevelCode,
+      lastServiceIndex: workOrder.serviceLevelIndex,
+      lastServiceReading: reading,
+      lastServiceAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  )
+  return true
+}
+
 function ensureCanUpdate(role: UserRole): void {
   if (!canAccess(role, "workOrders", "update")) throw new Error("Permission denied")
 }
@@ -185,6 +225,12 @@ export async function transitionWorkOrderLifecycle(input: TransitionInput): Prom
     })
 
     const batch = writeBatch(db)
+
+    // When a service work order closes, advance the asset's rotation position so
+    // the next service is computed as a continuation (not from scratch).
+    const advanced =
+      input.targetStatus === "CLOSED" ? await advanceAssetRotation(batch, workOrder) : false
+
     const patch = stripUndefined({
       status: workOrderLifecycleToStatus(input.targetStatus),
       lifecycleStatus: input.targetStatus,
@@ -193,6 +239,7 @@ export async function transitionWorkOrderLifecycle(input: TransitionInput): Prom
       approvalRequired: input.approvalRequired,
       closedAt: input.targetStatus === "CLOSED" ? serverTimestamp() : undefined,
       closedByUid: input.targetStatus === "CLOSED" ? input.actorUid : undefined,
+      rotationAdvanced: advanced ? true : undefined,
       updatedAt: serverTimestamp(),
       ...completionPatch(input.completionData),
     })
@@ -207,29 +254,6 @@ export async function transitionWorkOrderLifecycle(input: TransitionInput): Prom
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-
-    // When a service work order closes, advance the asset's rotation position so
-    // the next service is computed as a continuation (not from scratch).
-    if (input.targetStatus === "CLOSED" && workOrder.serviceLevelCode && workOrder.assetId) {
-      const assetSnap = await getDoc(doc(db, "assets", workOrder.assetId))
-      if (assetSnap.exists()) {
-        const asset = normalizeAsset(assetSnap.id, assetSnap.data())
-        let reading = asset.operatingHours ?? 0
-        if (asset.maintenanceTemplateId) {
-          const tplSnap = await getDoc(doc(db, "maintenanceTemplates", asset.maintenanceTemplateId))
-          if (tplSnap.exists()) {
-            const tpl = normalizeMaintenanceTemplate(tplSnap.id, tplSnap.data())
-            reading = tpl.meterKind === "odometer" ? asset.odometer ?? 0 : asset.operatingHours ?? 0
-          }
-        }
-        batch.update(doc(db, "assets", workOrder.assetId), {
-          lastServiceCode: workOrder.serviceLevelCode,
-          lastServiceReading: reading,
-          lastServiceAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        })
-      }
-    }
 
     await batch.commit()
     await emitWorkOrderStatusNotification({
@@ -306,15 +330,20 @@ export async function approveWorkOrderLifecycle(input: ApprovalInput): Promise<A
   try {
     const { ref, workOrder } = await loadWorkOrder(input.workOrderId)
     const batch = writeBatch(db)
-    batch.update(ref, {
+    // Approving a service work order advances the asset's rotation immediately, so
+    // the "next service" rolls forward the moment the manager approves (guarded so
+    // a later close does not advance again).
+    const advanced = await advanceAssetRotation(batch, workOrder)
+    batch.update(ref, stripUndefined({
       approvalRequired: true,
       approvedByUid: input.actorUid,
       approvedAt: serverTimestamp(),
       rejectedAt: null,
       rejectedByUid: null,
       rejectionReason: null,
+      rotationAdvanced: advanced ? true : undefined,
       updatedAt: serverTimestamp(),
-    })
+    }))
     batch.set(doc(collection(db, "activityLogs")), {
       actorUid: input.actorUid,
       actionKey: "work_order.approve",

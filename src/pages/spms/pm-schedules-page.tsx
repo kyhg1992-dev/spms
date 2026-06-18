@@ -155,7 +155,7 @@ export default function PMSchedulesPage() {
                             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
                             style={{ backgroundColor: c.bg, color: c.fg }}
                           >
-                            {next.nextCode} · {pmServiceTypeAr[next.nextCode] ?? ""}
+                            {next.nextLabel} · {pmServiceTypeAr[next.nextCode] ?? ""}
                           </span>
                         </TableCell>
                         <TableCell>

@@ -75,7 +75,7 @@ service cloud.firestore {
         "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "internalNotes",
         "estimatedCost", "actualCost", "approvalRequired", "approvedByUid", "approvedAt", "rejectedAt",
         "rejectedByUid", "rejectionReason", "pmScheduleId", "sourceType", "sourceRef",
-        "serviceLevelCode", "serviceLevelNameAr", "serviceTasks",
+        "serviceLevelCode", "serviceLevelNameAr", "serviceLevelIndex", "rotationAdvanced", "serviceTasks",
         "lastPublicComment", "createdAt", "updatedAt"
       ];
     }

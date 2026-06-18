@@ -58,7 +58,7 @@ export default function AssetStickerPrintPage() {
           <div className="mt-2 flex items-center gap-3">
             {c ? (
               <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-lg text-white" style={{ backgroundColor: c.solid }}>
-                <span className="text-2xl font-bold leading-none">{next!.nextCode}</span>
+                <span className="text-2xl font-bold leading-none">{next!.nextLabel}</span>
                 <span className="text-[8px] opacity-90">المستوى</span>
               </div>
             ) : null}
@@ -77,7 +77,7 @@ export default function AssetStickerPrintPage() {
             <QRCodeSVG value={scanUrl} size={56} bgColor="#ffffff" fgColor="#0f172a" level="M" />
           </div>
           <div className="mt-2 border-t border-slate-200 pt-1.5 text-[9px] text-slate-500">
-            آخر صيانة: {asset.lastServiceCode ?? "—"}
+            آخر صيانة: {next?.lastLabel ?? asset.lastServiceCode ?? "—"}
             {asset.lastServiceReading != null ? ` عند ${Math.round(asset.lastServiceReading)}` : ""} · امسح الرمز للتفاصيل
           </div>
         </div>

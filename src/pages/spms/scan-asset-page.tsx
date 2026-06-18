@@ -108,7 +108,7 @@ export default function ScanAssetPage() {
         priority: isDue ? "high" : "normal",
         title: isDue ? `طلب تنفيذ صيانة — ${asset!.assetCode}` : `طلب استثناء صيانة — ${asset!.assetCode}`,
         body: isDue
-          ? `الفنّي يطلب تنفيذ صيانة مستوى ${next?.nextCode ?? ""} للأصل ${asset!.assetName}.`
+          ? `الفنّي يطلب تنفيذ صيانة مستوى ${next?.nextLabel ?? ""} للأصل ${asset!.assetName}.`
           : `الفنّي يطلب استثناء (الصيانة غير مستحقة بعد) للأصل ${asset!.assetName}.`,
         isRead: false,
         isArchived: false,
@@ -164,7 +164,7 @@ export default function ScanAssetPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t("scan.nextService")}</span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="flex size-8 items-center justify-center rounded-md text-sm font-bold text-white" style={{ backgroundColor: nsColor!.solid }}>{next.nextCode}</span>
+                  <span className="flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm font-bold text-white" style={{ backgroundColor: nsColor!.solid }}>{next.nextLabel}</span>
                   <span className="font-medium" style={{ color: next.isDue ? serviceLevelColor("A").solid : undefined }}>
                     {next.isDue ? `${t("scan.dueNow")} (+${String(Math.round(next.overdueBy))})` : `${t("scan.after")} ${String(Math.round(next.remainingUntilDue))}`}
                   </span>
@@ -173,7 +173,7 @@ export default function ScanAssetPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">{t("scan.lastService")}</span>
                 <span className="font-medium">
-                  {asset.lastServiceCode ?? "—"}
+                  {next.lastLabel ?? asset.lastServiceCode ?? "—"}
                   {asset.lastServiceReading != null ? ` · عند ${Math.round(asset.lastServiceReading)}` : ""}
                   {asset.lastServiceAt ? ` · ${formatArDate(asset.lastServiceAt)}` : ""}
                 </span>
@@ -215,7 +215,7 @@ export default function ScanAssetPage() {
         <div className="flex flex-col gap-2">
           {isManager ? (
             <Button disabled={busy} onClick={() => void generate()}>
-              <Wrench className="size-4" /> {t("scan.generateWO")} ({next.nextCode})
+              <Wrench className="size-4" /> {t("scan.generateWO")} ({next.nextLabel})
             </Button>
           ) : next.isDue ? (
             <Button disabled={busy} onClick={() => void requestAction(true)}>

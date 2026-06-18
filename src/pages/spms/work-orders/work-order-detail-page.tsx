@@ -3,6 +3,7 @@ import { useMemo } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
 
 import { WorkOrderOperationalActions } from "@/components/work-orders/work-order-operational-actions"
+import { WorkOrderPendingBadge } from "@/components/work-orders/work-order-pending-badge"
 import { ServiceTaskTable } from "@/components/work-orders/service-task-table"
 import { WorkOrderTimeline } from "@/components/work-orders/work-order-timeline"
 import { Badge } from "@/components/ui/badge"
@@ -67,6 +68,7 @@ export default function WorkOrderDetailPage() {
             <h1 className="font-bold text-2xl">{wo.title}</h1>
             <Badge variant="outline">{workOrderStatusAr[String(wo.status)] ?? wo.status}</Badge>
             <Badge variant="secondary">{workOrderPriorityAr[wo.priority] ?? wo.priority}</Badge>
+            <WorkOrderPendingBadge workOrder={wo} />
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{assetName ?? wo.assetId}</p>
         </div>

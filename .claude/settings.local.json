@@ -42,7 +42,11 @@
       "Bash(git config *)",
       "Bash(git add *)",
       "Bash(grep -iE \"^\\\\.firebase/|^dist/|\\\\.log$|CODEX_WRITE\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git pull *)",
+      "Bash(npx firebase-tools *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

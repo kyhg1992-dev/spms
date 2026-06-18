@@ -109,6 +109,10 @@ export function normalizeAsset(docId: string, data: DocumentData): Asset & { id:
       typeof d.lastServiceCode === "string" && /^[A-Z]$/.test(d.lastServiceCode)
         ? (d.lastServiceCode as Asset["lastServiceCode"])
         : undefined,
+    lastServiceIndex:
+      typeof d.lastServiceIndex === "number" && Number.isInteger(d.lastServiceIndex) && d.lastServiceIndex >= 0
+        ? d.lastServiceIndex
+        : undefined,
     lastServiceReading: typeof d.lastServiceReading === "number" ? d.lastServiceReading : undefined,
     manufacturer: typeof d.manufacturer === "string" ? d.manufacturer : brand || undefined,
     serialNumber: typeof d.serialNumber === "string" ? d.serialNumber : serialNo || undefined,

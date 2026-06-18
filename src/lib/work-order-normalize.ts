@@ -272,6 +272,11 @@ export function normalizeWorkOrder(docId: string, data: DocumentData): WorkOrder
         : undefined,
     serviceLevelNameAr:
       typeof d.serviceLevelNameAr === "string" ? d.serviceLevelNameAr : undefined,
+    serviceLevelIndex:
+      typeof d.serviceLevelIndex === "number" && Number.isInteger(d.serviceLevelIndex) && d.serviceLevelIndex >= 0
+        ? d.serviceLevelIndex
+        : undefined,
+    rotationAdvanced: typeof d.rotationAdvanced === "boolean" ? d.rotationAdvanced : undefined,
     serviceTasks: Array.isArray(d.serviceTasks)
       ? (d.serviceTasks as WorkOrder["serviceTasks"])
       : undefined,

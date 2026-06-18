@@ -365,7 +365,7 @@ export default function AssetsListPage() {
                                 style={{ backgroundColor: c.bg, color: c.fg }}
                                 title={ns.isDue ? "مستحقة" : `بعد ${String(Math.round(ns.remainingUntilDue))}`}
                               >
-                                {ns.nextCode}
+                                {ns.nextLabel}
                                 {ns.isDue ? " •" : ""}
                               </span>
                             )

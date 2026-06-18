@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { WorkOrderPendingBadge } from "@/components/work-orders/work-order-pending-badge"
 import { useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
 import { workOrderPriorityAr, workOrderStatusAr } from "@/lib/labels-ar"
@@ -58,6 +59,7 @@ export default function WorkOrdersListPage() {
                     <TableHead>العنوان</TableHead>
                     <TableHead>الأصل</TableHead>
                     <TableHead>الحالة</TableHead>
+                    <TableHead>عالق عند</TableHead>
                     <TableHead>الأولوية</TableHead>
                     <TableHead>الاستحقاق</TableHead>
                   </TableRow>
@@ -77,6 +79,9 @@ export default function WorkOrdersListPage() {
                       <TableCell>{assetNameById.get(wo.assetId) ?? wo.assetId.slice(0, 8)}…</TableCell>
                       <TableCell>
                         <Badge variant="outline">{workOrderStatusAr[String(wo.status)] ?? wo.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <WorkOrderPendingBadge workOrder={wo} />
                       </TableCell>
                       <TableCell>
                         <Badge

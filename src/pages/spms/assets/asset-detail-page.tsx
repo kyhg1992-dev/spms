@@ -159,10 +159,10 @@ export default function AssetDetailPage() {
                 className="flex size-11 items-center justify-center rounded-lg text-lg font-bold text-white"
                 style={{ backgroundColor: serviceLevelColor(nextService.nextCode).solid }}
               >
-                {nextService.nextCode}
+                {nextService.nextLabel}
               </span>
               <div>
-                <div className="text-sm font-medium">الخدمة القادمة — المستوى {nextService.nextCode}</div>
+                <div className="text-sm font-medium">الخدمة القادمة — المستوى {nextService.nextLabel}</div>
                 <div className="text-muted-foreground text-xs">
                   {nextService.templateName} · القراءة الحالية {Math.round(nextService.currentReading)}
                 </div>

@@ -21,7 +21,7 @@ import {
 } from "@/lib/operational-integrity"
 import { operationalCalendarFromSettings, type OperationalCalendar } from "@/lib/operational-calendar"
 import { calculatePMSchedulePatch } from "@/lib/pm-engine"
-import { computeNextCode } from "@/lib/maintenance-sequence"
+import { computeNextCode, occurrenceLabelForIndex } from "@/lib/maintenance-sequence"
 import { normalizeMaintenanceTemplate } from "@/lib/maintenance-sequence-normalize"
 import { normalizePMSchedule } from "@/lib/pm-schedule-normalize"
 import { normalizeWorkOrder } from "@/lib/work-order-normalize"
@@ -367,7 +367,14 @@ export async function generateServiceWorkOrderFromAsset(input: {
     const currentReading =
       template.meterKind === "odometer" ? asset.odometer ?? 0 : asset.operatingHours ?? 0
     const lastReading = asset.lastServiceReading ?? currentReading
-    const next = computeNextCode(template, asset.lastServiceCode ?? null, currentReading, lastReading)
+    const next = computeNextCode(
+      template,
+      asset.lastServiceCode ?? null,
+      currentReading,
+      lastReading,
+      asset.lastServiceIndex ?? null
+    )
+    const nextLabel = occurrenceLabelForIndex(template.sequence, next.nextIndex) || next.nextCode
     const payload = buildServiceLevelPayload(template, next.nextCode)
 
     const woRef = doc(collection(db, "workOrders"))
@@ -375,8 +382,8 @@ export async function generateServiceWorkOrderFromAsset(input: {
     batch.set(
       woRef,
       stripUndefined({
-        title: `صيانة ${next.nextCode} — ${asset.assetName}`,
-        description: `أمر صيانة مستوى ${next.nextCode} للأصل ${asset.assetCode} وفق قالب ${template.name}.`,
+        title: `صيانة ${nextLabel} — ${asset.assetName}`,
+        description: `أمر صيانة مستوى ${nextLabel} للأصل ${asset.assetCode} وفق قالب ${template.name}.`,
         assetId: asset.id,
         requesterId: input.actorUid,
         status: "open",
@@ -390,6 +397,7 @@ export async function generateServiceWorkOrderFromAsset(input: {
         sourceType: "PM",
         sourceRef: `assets/${asset.id}`,
         ...payload,
+        serviceLevelIndex: next.nextIndex,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
@@ -399,7 +407,7 @@ export async function generateServiceWorkOrderFromAsset(input: {
       actionKey: "asset.service_work_order_generated",
       entityType: "asset",
       entityId: asset.id,
-      labelAr: `توليد أمر صيانة مستوى ${next.nextCode} للأصل ${asset.assetCode}`,
+      labelAr: `توليد أمر صيانة مستوى ${nextLabel} للأصل ${asset.assetCode}`,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })

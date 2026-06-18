@@ -1,12 +1,18 @@
 import type { Asset, MaintenanceSequenceTemplate, PMSchedule } from "@/models/firestore"
 
-import { computeNextCode, type NextCodeResult } from "@/lib/maintenance-sequence"
+import {
+  computeNextCode,
+  occurrenceLabelForIndex,
+  type NextCodeResult,
+} from "@/lib/maintenance-sequence"
 
 export type NextServiceView = NextCodeResult & {
   templateId: string
   templateName: string
   currentReading: number
   meterKind: MaintenanceSequenceTemplate["meterKind"]
+  /** Display label of the last performed service (disambiguates repeats), or null. */
+  lastLabel: string | null
 }
 
 /**
@@ -46,6 +52,7 @@ export function deriveNextServiceForSchedule(input: {
     templateName: template.name,
     currentReading,
     meterKind: template.meterKind,
+    lastLabel: null,
   }
 }
 
@@ -73,8 +80,14 @@ export function deriveNextServiceForAsset(input: {
     template,
     input.asset.lastServiceCode ?? null,
     currentReading,
-    lastReading
+    lastReading,
+    input.asset.lastServiceIndex ?? null
   )
+
+  const lastLabel =
+    input.asset.lastServiceIndex != null
+      ? occurrenceLabelForIndex(template.sequence, input.asset.lastServiceIndex)
+      : input.asset.lastServiceCode ?? null
 
   return {
     ...result,
@@ -82,5 +95,6 @@ export function deriveNextServiceForAsset(input: {
     templateName: template.name,
     currentReading,
     meterKind: template.meterKind,
+    lastLabel,
   }
 }

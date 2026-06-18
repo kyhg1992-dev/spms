@@ -26,6 +26,7 @@ import {
   type TemplateDraft,
 } from "@/lib/maintenance-template-library"
 import { ALL_SERVICE_CODES, serviceLevelColor, actionColor } from "@/lib/spms-colors"
+import { sequenceOccurrenceLabels } from "@/lib/maintenance-sequence"
 import type {
   MaintenanceActionCode,
   MaintenanceServiceCode,
@@ -196,7 +197,8 @@ export default function TemplateEditorPage() {
   const preview = useMemo(() => {
     const seq = draft.sequence ?? []
     const step = draft.stepInterval || 0
-    return seq.map((code, i) => ({ at: step * (i + 1), code }))
+    const labels = sequenceOccurrenceLabels(seq)
+    return seq.map((code, i) => ({ at: step * (i + 1), code, label: labels[i] }))
   }, [draft.sequence, draft.stepInterval])
 
   async function save() {
@@ -428,20 +430,23 @@ export default function TemplateEditorPage() {
               {(draft.sequence ?? []).map((code, i) => {
                 const c = serviceLevelColor(code)
                 return (
-                  <span key={i} className="inline-flex items-center gap-1">
-                    <select
-                      className="rounded-md border px-2 py-1 text-xs font-bold"
-                      style={{ color: c.fg, backgroundColor: c.bg }}
-                      value={code}
-                      onChange={(e) => {
-                        const next = [...(draft.sequence ?? [])]
-                        next[i] = e.target.value as typeof code
-                        update({ sequence: next })
-                      }}
-                    >
-                      {levels.map((l) => <option key={l.code} value={l.code}>{l.code}</option>)}
-                    </select>
-                    <button className="text-muted-foreground hover:text-destructive text-xs" aria-label="حذف خطوة" onClick={() => update({ sequence: (draft.sequence ?? []).filter((_, j) => j !== i) })}>×</button>
+                  <span key={i} className="inline-flex flex-col items-center gap-0.5">
+                    <span className="inline-flex items-center gap-1">
+                      <select
+                        className="rounded-md border px-2 py-1 text-xs font-bold"
+                        style={{ color: c.fg, backgroundColor: c.bg }}
+                        value={code}
+                        onChange={(e) => {
+                          const next = [...(draft.sequence ?? [])]
+                          next[i] = e.target.value as typeof code
+                          update({ sequence: next })
+                        }}
+                      >
+                        {levels.map((l) => <option key={l.code} value={l.code}>{l.code}</option>)}
+                      </select>
+                      <button className="text-muted-foreground hover:text-destructive text-xs" aria-label="حذف خطوة" onClick={() => update({ sequence: (draft.sequence ?? []).filter((_, j) => j !== i) })}>×</button>
+                    </span>
+                    <span className="text-muted-foreground text-[9px] font-medium tabular-nums">{preview[i]?.label ?? code}</span>
                   </span>
                 )
               })}
@@ -469,7 +474,7 @@ export default function TemplateEditorPage() {
                   return (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground tabular-nums">{p.at} {unit}</span>
-                      <Badge className="text-[11px]" style={{ backgroundColor: c.bg, color: c.fg }}>{p.code}</Badge>
+                      <Badge className="text-[11px]" style={{ backgroundColor: c.bg, color: c.fg }}>{p.label}</Badge>
                     </div>
                   )
                 })}

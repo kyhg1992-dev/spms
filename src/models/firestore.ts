@@ -152,6 +152,10 @@ export type Asset = BaseDoc & {
   maintenanceTemplateId?: string
   /** Last service level performed — the rotation's current position (continuation). */
   lastServiceCode?: PMServiceType
+  /** Position (index) of the last performed service within the template `sequence`.
+   * This — not `lastServiceCode` — is the authoritative rotation cursor, so a code
+   * that repeats in the sequence (e.g. D appearing 3 times) advances correctly. */
+  lastServiceIndex?: number
   /** Meter reading (per template trigger) at the last performed service. */
   lastServiceReading?: number
   /** Legacy migrations */
@@ -217,6 +221,12 @@ export type WorkOrder = BaseDoc & {
   /** Service level (A/B/C/D) this PM work order performs, from the maintenance template. */
   serviceLevelCode?: MaintenanceServiceCode
   serviceLevelNameAr?: string
+  /** Position of this service within the template `sequence` — used to advance the
+   * asset's rotation cursor on close/approve (handles repeated codes like D1/D2/D3). */
+  serviceLevelIndex?: number
+  /** True once this work order has advanced the asset's rotation cursor, so approve
+   * and close never double-advance. */
+  rotationAdvanced?: boolean
   /** Full task list inherited from the template level (checklist + part requirements). */
   serviceTasks?: MaintenanceServiceTask[]
   /** WO workflow comment thread (minimal v1 single text / future subcollection friendly) */
