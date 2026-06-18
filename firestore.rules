@@ -84,9 +84,9 @@ service cloud.firestore {
     function technicianExecutionFields() {
       return [
         "status", "lifecycleStatus", "executionStartedAt", "executionCompletedAt", "technicianNotes",
-        "completionNotes", "actualLaborHours", "actualDowntimeHours", "meterReadingAtExecution",
-        "executionChecklist", "executionPhotos", "requiredPartsNote", "safetyNotes",
-        "completionMeterReadingId", "attachmentsPlaceholder", "updatedAt"
+        "completionNotes", "actualLaborHours", "actualDowntimeHours", "laborHours", "downtimeHours",
+        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "requiredPartsNote",
+        "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "updatedAt"
       ];
     }
 

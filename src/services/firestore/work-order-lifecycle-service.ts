@@ -224,6 +224,11 @@ export async function transitionWorkOrderLifecycle(input: TransitionInput): Prom
       approvalRequired: input.approvalRequired,
     })
 
+    // The originating request number (CAM) is mandatory before fully closing.
+    if (input.targetStatus === "CLOSED" && !workOrder.externalRequestNo?.trim()) {
+      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) قبل الإغلاق النهائي")
+    }
+
     const batch = writeBatch(db)
 
     // When a service work order closes, advance the asset's rotation position so
@@ -439,6 +444,10 @@ export async function finalizeWorkOrderLifecycle(input: ClosureInput): Promise<A
     if (current !== "WAITING_APPROVAL" && current !== "COMPLETED") {
       return errorState<LifecycleResult>("لا يمكن الاعتماد قبل إنهاء التنفيذ")
     }
+    // The originating request number (CAM) is mandatory before fully closing.
+    if (!workOrder.externalRequestNo?.trim()) {
+      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) قبل الاعتماد والإغلاق النهائي")
+    }
 
     const batch = writeBatch(db)
     const advanced = await advanceAssetRotation(batch, workOrder)
@@ -452,6 +461,8 @@ export async function finalizeWorkOrderLifecycle(input: ClosureInput): Promise<A
       rejectionReason: null,
       closedAt: serverTimestamp(),
       closedByUid: input.actorUid,
+      laborHours: workOrder.laborHours ?? workOrder.actualLaborHours,
+      downtimeHours: workOrder.downtimeHours ?? workOrder.actualDowntimeHours,
       rotationAdvanced: advanced ? true : undefined,
       updatedAt: serverTimestamp(),
     }))

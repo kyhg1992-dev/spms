@@ -49,6 +49,7 @@ const text = {
     complete: "إنهاء التنفيذ",
     finalize: "اعتماد وإغلاق",
     finalizeHint: "متاح بعد إنهاء الفنّي للتنفيذ.",
+    needRequestNo: "أدخل رقم الطلب (الكام) أولاً قبل الإغلاق.",
     reject: "رفض وإعادة",
     assign: "إسناد لفنّي",
     reassign: "إعادة إسناد",
@@ -76,6 +77,7 @@ const text = {
     complete: "Finish Execution",
     finalize: "Approve & Close",
     finalizeHint: "Available after the technician finishes execution.",
+    needRequestNo: "Enter the request (CAM) number before closing.",
     reject: "Reject & Return",
     assign: "Assign technician",
     reassign: "Reassign",
@@ -133,7 +135,9 @@ export function WorkOrderOperationalActions({
   const hasAuth = !!spmsRole && !!user?.uid
   const manager = canManage(spmsRole)
   const hasAssignee = !!(workOrder.assignedTo?.trim() || workOrder.assigneeId?.trim())
-  const canFinalize = manager && (lifecycleStatus === "WAITING_APPROVAL" || lifecycleStatus === "COMPLETED")
+  const hasRequestNo = !!workOrder.externalRequestNo?.trim()
+  const readyToFinalize = manager && (lifecycleStatus === "WAITING_APPROVAL" || lifecycleStatus === "COMPLETED")
+  const canFinalize = readyToFinalize && hasRequestNo
   const canReject = manager && lifecycleStatus === "WAITING_APPROVAL"
   const isTerminal = lifecycleStatus === "CLOSED" || lifecycleStatus === "CANCELLED"
   const assignLabel = hasAssignee ? labels.reassign : labels.assign
@@ -263,7 +267,15 @@ export function WorkOrderOperationalActions({
           size="sm"
           className="min-h-10 flex-1 sm:flex-none"
           disabled={!hasAuth || !canFinalize || busyAction !== null}
-          title={!manager ? labels.managerOnly : !canFinalize ? labels.finalizeHint : undefined}
+          title={
+            !manager
+              ? labels.managerOnly
+              : readyToFinalize && !hasRequestNo
+                ? labels.needRequestNo
+                : !readyToFinalize
+                  ? labels.finalizeHint
+                  : undefined
+          }
           onClick={() =>
             void runAction(labels.finalize, () => finalizeWorkOrder(spmsRole!, workOrder.id, user!.uid))
           }
@@ -298,6 +310,12 @@ export function WorkOrderOperationalActions({
           {assignLabel}
         </Button>
       </div>
+
+      {readyToFinalize && !hasRequestNo ? (
+        <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+          {labels.needRequestNo}
+        </p>
+      ) : null}
 
       <ExecutionDialog
         open={dialog === "draft" || dialog === "complete"}
