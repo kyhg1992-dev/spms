@@ -134,8 +134,8 @@ export default function MaintenanceLogPage() {
           <CardDescription>التاريخ، الأصل، الإجراء، الفنّي، المعتمِد، رقم الطلب، والحالة.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[180px] flex-1 space-y-1.5">
               <Label htmlFor="q" className="text-xs">بحث برقم الأصل أو اللوحة</Label>
               <div className="relative">
                 <Search className="text-muted-foreground absolute inset-inline-start-2.5 top-2.5 size-4" aria-hidden />
@@ -199,9 +199,9 @@ export default function MaintenanceLogPage() {
                     <TableHead>التاريخ</TableHead>
                     <TableHead>الأصل</TableHead>
                     <TableHead>الإجراء</TableHead>
-                    <TableHead>الفنّي</TableHead>
-                    <TableHead>المعتمِد</TableHead>
-                    <TableHead>رقم الطلب</TableHead>
+                    <TableHead className="hidden md:table-cell">الفنّي</TableHead>
+                    <TableHead className="hidden lg:table-cell">المعتمِد</TableHead>
+                    <TableHead className="hidden sm:table-cell">رقم الطلب</TableHead>
                     <TableHead>الحالة</TableHead>
                     {isAdmin ? <TableHead className="w-10" /> : null}
                   </TableRow>
@@ -237,9 +237,9 @@ export default function MaintenanceLogPage() {
                             </span>
                           </Link>
                         </TableCell>
-                        <TableCell className="text-sm">{nameOf(wo.assignedTo ?? wo.assigneeId)}</TableCell>
-                        <TableCell className="text-sm">{nameOf(wo.approvedByUid)}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm tabular-nums" dir="ltr">
+                        <TableCell className="hidden text-sm md:table-cell">{nameOf(wo.assignedTo ?? wo.assigneeId)}</TableCell>
+                        <TableCell className="hidden text-sm lg:table-cell">{nameOf(wo.approvedByUid)}</TableCell>
+                        <TableCell className="hidden text-muted-foreground text-sm tabular-nums sm:table-cell" dir="ltr">
                           {wo.externalRequestNo?.trim() || "—"}
                         </TableCell>
                         <TableCell>

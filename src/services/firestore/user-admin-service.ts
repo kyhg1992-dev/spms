@@ -6,7 +6,7 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth"
-import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore"
+import { deleteDoc, doc, getDoc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore"
 
 import { db } from "@/lib/firebase"
 import type { UserRole } from "@/models/firestore"
@@ -128,6 +128,23 @@ export async function setUserSecret(uid: string, password: string): Promise<void
     { password, updatedAt: serverTimestamp() },
     { merge: true }
   )
+}
+
+/**
+ * Remove a user from the system: deletes their profile and stored password (admin
+ * only). The Firebase Auth login record itself can only be removed by a backend
+ * (Admin SDK); without a profile the account has no role and is effectively locked out.
+ */
+export async function deleteUserAccount(
+  uid: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await deleteDoc(doc(db, "users", uid))
+    await deleteDoc(doc(db, "userSecrets", uid)).catch(() => undefined)
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "تعذّر حذف المستخدم" }
+  }
 }
 
 /** Read a user's stored password (admin only). Returns null when none is stored. */

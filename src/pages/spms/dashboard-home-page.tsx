@@ -276,6 +276,7 @@ export default function DashboardHomePage() {
             {workload.length === 0 ? (
               <p className="text-muted-foreground text-sm">لا توجد أوامر عمل مُسندة حالياً للفنيين.</p>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -294,6 +295,7 @@ export default function DashboardHomePage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

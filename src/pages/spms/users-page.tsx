@@ -23,7 +23,7 @@ import { formatArDate } from "@/lib/format"
 import { userRoleAr } from "@/lib/labels-ar"
 import type { SpmsUser } from "@/models/firestore"
 import { updateUser } from "@/services/firestore/spms-service"
-import { getUserSecret } from "@/services/firestore/user-admin-service"
+import { deleteUserAccount, getUserSecret } from "@/services/firestore/user-admin-service"
 
 type UserRow = SpmsUser & { id: string }
 
@@ -74,6 +74,27 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const isAdmin = spmsRole === "admin"
 
+  async function removeUser(row: UserRow) {
+    if (!isAdmin) return
+    if (row.id === actor?.uid) {
+      toast.error("لا يمكنك حذف حسابك الحالي")
+      return
+    }
+    if (!window.confirm(`حذف المستخدم «${row.displayName}» نهائياً؟ سيفقد صلاحيته فوراً.`)) return
+    setBusyId(row.id)
+    try {
+      const res = await deleteUserAccount(row.id)
+      if (!res.ok) {
+        toast.error(res.error)
+        return
+      }
+      toast.success("تم حذف المستخدم")
+      await queryClient.invalidateQueries({ queryKey: ["users"] })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   async function toggleActive(row: UserRow) {
     if (!isAdmin) return
     if (row.id === actor?.uid) {
@@ -121,11 +142,11 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>الاسم</TableHead>
-                    <TableHead>البريد</TableHead>
+                    <TableHead className="hidden sm:table-cell">البريد</TableHead>
                     <TableHead>الدور</TableHead>
                     <TableHead>الحالة</TableHead>
                     {isAdmin ? <TableHead>كلمة المرور</TableHead> : null}
-                    <TableHead>آخر تحديث</TableHead>
+                    <TableHead className="hidden md:table-cell">آخر تحديث</TableHead>
                     {isAdmin ? <TableHead className="w-12 text-end">إجراءات</TableHead> : null}
                   </TableRow>
                 </TableHeader>
@@ -133,7 +154,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                   {(data ?? []).map((u) => (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.displayName}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm" dir="ltr">{u.email}</TableCell>
+                      <TableCell className="hidden text-muted-foreground text-sm sm:table-cell" dir="ltr">{u.email}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{userRoleAr[u.role] ?? u.role}</Badge>
                       </TableCell>
@@ -147,7 +168,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                       {isAdmin ? (
                         <TableCell><PasswordCell uid={u.id} /></TableCell>
                       ) : null}
-                      <TableCell className="text-muted-foreground text-sm">{formatArDate(u.updatedAt)}</TableCell>
+                      <TableCell className="hidden text-muted-foreground text-sm md:table-cell">{formatArDate(u.updatedAt)}</TableCell>
                       {isAdmin ? (
                         <TableCell className="text-end">
                           <DropdownMenu dir="rtl">
@@ -166,6 +187,14 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => void toggleActive(u)}>
                                 {u.isActive ? "تعطيل" : "تفعيل"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                disabled={u.id === actor?.uid}
+                                onClick={() => void removeUser(u)}
+                              >
+                                حذف المستخدم
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
