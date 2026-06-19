@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
@@ -102,12 +101,6 @@ function firstReason(errors: string[], fallback: string): string {
   return errors[0] ?? fallback
 }
 
-function parseNumber(value: string): number | undefined {
-  if (!value.trim()) return undefined
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : undefined
-}
-
 function canManage(role: string | null): boolean {
   return role === "admin" || role === "manager"
 }
@@ -123,10 +116,7 @@ export function WorkOrderOperationalActions({
   const [dialog, setDialog] = useState<ActionDialog>(null)
   const [reassignOpen, setReassignOpen] = useState(false)
   const [busyAction, setBusyAction] = useState<string | null>(null)
-  const [technicianNotes, setTechnicianNotes] = useState(workOrder.technicianNotes ?? "")
   const [completionNotes, setCompletionNotes] = useState(workOrder.completionNotes ?? "")
-  const [laborHours, setLaborHours] = useState(String(workOrder.actualLaborHours ?? workOrder.laborHours ?? ""))
-  const [downtimeHours, setDowntimeHours] = useState(String(workOrder.actualDowntimeHours ?? workOrder.downtimeHours ?? ""))
   const [safetyNotes, setSafetyNotes] = useState(workOrder.safetyNotes ?? "")
   const [partsNote, setPartsNote] = useState(workOrder.requiredPartsNote ?? "")
   const [rejectionReason, setRejectionReason] = useState("")
@@ -148,10 +138,9 @@ export function WorkOrderOperationalActions({
     const draft = canSaveExecutionDraft(workOrder)
     const complete = canCompleteExecution(workOrder, {
       completionNotes: completionNotes.trim() || "ready",
-      actualLaborHours: parseNumber(laborHours) ?? 0,
     })
     return { start, draft, complete }
-  }, [completionNotes, laborHours, workOrder])
+  }, [completionNotes, workOrder])
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
@@ -179,10 +168,7 @@ export function WorkOrderOperationalActions({
   }
 
   const draftPayload = {
-    technicianNotes,
     completionNotes,
-    actualLaborHours: parseNumber(laborHours),
-    actualDowntimeHours: parseNumber(downtimeHours),
     requiredPartsNote: partsNote,
     safetyNotes,
   }
@@ -191,10 +177,7 @@ export function WorkOrderOperationalActions({
       ? createOfflineExecutionDraft({
           workOrderId: workOrder.id,
           technicianUid: user.uid,
-          technicianNotes,
           completionNotes,
-          actualLaborHours: parseNumber(laborHours),
-          actualDowntimeHours: parseNumber(downtimeHours),
         })
       : null
 
@@ -323,16 +306,10 @@ export function WorkOrderOperationalActions({
         labels={labels}
         busy={busyAction !== null}
         completionNotes={completionNotes}
-        technicianNotes={technicianNotes}
-        laborHours={laborHours}
-        downtimeHours={downtimeHours}
         safetyNotes={safetyNotes}
         partsNote={partsNote}
         dir={dir}
         setCompletionNotes={setCompletionNotes}
-        setTechnicianNotes={setTechnicianNotes}
-        setLaborHours={setLaborHours}
-        setDowntimeHours={setDowntimeHours}
         setSafetyNotes={setSafetyNotes}
         setPartsNote={setPartsNote}
         onOpenChange={(open) => setDialog(open ? dialog : null)}
@@ -392,15 +369,9 @@ function ExecutionDialog(props: {
   dir: "rtl" | "ltr"
   busy: boolean
   completionNotes: string
-  technicianNotes: string
-  laborHours: string
-  downtimeHours: string
   safetyNotes: string
   partsNote: string
   setCompletionNotes: (value: string) => void
-  setTechnicianNotes: (value: string) => void
-  setLaborHours: (value: string) => void
-  setDowntimeHours: (value: string) => void
   setSafetyNotes: (value: string) => void
   setPartsNote: (value: string) => void
   onOpenChange: (open: boolean) => void
@@ -408,36 +379,20 @@ function ExecutionDialog(props: {
 }) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent dir={props.dir} className="sm:max-w-xl">
+      <DialogContent dir={props.dir} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
           <DialogDescription>{props.labels.executionDescription}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
-          <Field label={props.labels.technicianNotes}>
-            <Textarea
-              rows={3}
-              value={props.technicianNotes}
-              placeholder={props.labels.quickNote}
-              onChange={(event) => props.setTechnicianNotes(event.target.value)}
-            />
-          </Field>
           <Field label={props.labels.completionNotes}>
-            <Textarea rows={3} value={props.completionNotes} onChange={(event) => props.setCompletionNotes(event.target.value)} />
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={props.labels.laborHours}>
-              <Input type="number" min="0" step="0.25" value={props.laborHours} onChange={(event) => props.setLaborHours(event.target.value)} />
-            </Field>
-            <Field label={props.labels.downtimeHours}>
-              <Input type="number" min="0" step="0.25" value={props.downtimeHours} onChange={(event) => props.setDowntimeHours(event.target.value)} />
-            </Field>
-          </div>
-          <Field label={props.labels.safetyNotes}>
-            <Textarea value={props.safetyNotes} onChange={(event) => props.setSafetyNotes(event.target.value)} />
+            <Textarea rows={3} value={props.completionNotes} placeholder={props.labels.quickNote} onChange={(event) => props.setCompletionNotes(event.target.value)} />
           </Field>
           <Field label={props.labels.partsNote}>
-            <Textarea value={props.partsNote} onChange={(event) => props.setPartsNote(event.target.value)} />
+            <Textarea rows={2} value={props.partsNote} onChange={(event) => props.setPartsNote(event.target.value)} />
+          </Field>
+          <Field label={props.labels.safetyNotes}>
+            <Textarea rows={2} value={props.safetyNotes} onChange={(event) => props.setSafetyNotes(event.target.value)} />
           </Field>
         </div>
         <DialogFooter>

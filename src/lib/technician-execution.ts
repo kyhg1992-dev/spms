@@ -31,10 +31,6 @@ function hasAssignedTechnician(workOrder: WorkOrder): boolean {
   return !!(workOrder.assignedTo?.trim() || workOrder.assigneeId?.trim())
 }
 
-function validNumber(value: number | undefined): boolean {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
-}
-
 export function canStartExecution(workOrder: WorkOrder): TechnicianExecutionValidation {
   const status = currentStatus(workOrder)
   const errors: string[] = []
@@ -62,7 +58,6 @@ export function canCompleteExecution(
 ): TechnicianExecutionValidation {
   const status = currentStatus(workOrder)
   const completionNotes = draft.completionNotes ?? workOrder.completionNotes
-  const laborHours = draft.actualLaborHours ?? workOrder.actualLaborHours ?? workOrder.laborHours
   const errors: string[] = []
 
   if (status !== "ASSIGNED" && status !== "IN_PROGRESS") {
@@ -71,9 +66,7 @@ export function canCompleteExecution(
   if (!completionNotes?.trim()) {
     errors.push("Completion notes are required.")
   }
-  if (!validNumber(laborHours)) {
-    errors.push("Labor hours are required and must be non-negative.")
-  }
+  // Labor hours are computed automatically (start → end); no manual entry required.
   return { ok: errors.length === 0, errors }
 }
 

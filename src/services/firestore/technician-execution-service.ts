@@ -186,15 +186,18 @@ export async function completeExecution(input: DraftInput): Promise<AsyncState<E
 
     const targetStatus = completionTargetStatus(workOrder)
 
-    // Auto labor hours: elapsed time from request open → completion, used when the
-    // technician did not enter a value manually.
+    // Labor hours are computed automatically: elapsed time from when execution STARTED
+    // (بدء التنفيذ) until now (إنهاء التنفيذ). Falls back to the open time if the start
+    // was never recorded.
     const patch = draftPatch(input.draft)
-    const openedMs =
-      workOrder.createdAt && typeof workOrder.createdAt.toMillis === "function"
-        ? workOrder.createdAt.toMillis()
-        : undefined
-    if (patch.actualLaborHours === undefined && typeof openedMs === "number") {
-      const autoHours = Math.max(0, Math.round(((Date.now() - openedMs) / 3_600_000) * 10) / 10)
+    const startedMs =
+      workOrder.executionStartedAt && typeof workOrder.executionStartedAt.toMillis === "function"
+        ? workOrder.executionStartedAt.toMillis()
+        : workOrder.createdAt && typeof workOrder.createdAt.toMillis === "function"
+          ? workOrder.createdAt.toMillis()
+          : undefined
+    if (typeof startedMs === "number") {
+      const autoHours = Math.max(0, Math.round(((Date.now() - startedMs) / 3_600_000) * 10) / 10)
       patch.actualLaborHours = autoHours
       patch.laborHours = autoHours
     }

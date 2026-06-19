@@ -109,11 +109,17 @@ export default function WorkOrderDetailPage() {
         <Card className="rounded-xl border-border/70 shadow-md">
           <CardHeader>
             <CardTitle>القياسات التشغيلية</CardTitle>
-            <CardDescription>ساعات العمل وزمن التوقّف وحالة الاعتماد.</CardDescription>
+            <CardDescription>مدة التنفيذ المحسوبة وحالة الاعتماد.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <KV k="الساعات العمالية الفعلية" v={wo.laborHours !== undefined ? String(wo.laborHours) : "—"} />
-            <KV k="زمن التوقف (بالدقيقة)" v={wo.downtimeMinutes !== undefined ? String(wo.downtimeMinutes) : "—"} />
+            <KV
+              k="مدة التنفيذ (ساعات)"
+              v={
+                (wo.actualLaborHours ?? wo.laborHours) !== undefined
+                  ? String(wo.actualLaborHours ?? wo.laborHours)
+                  : "—"
+              }
+            />
             <KV k="مطلوب اعتماد" v={wo.approvalRequired ? "نعم" : "لا"} />
           </CardContent>
         </Card>
