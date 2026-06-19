@@ -1,3 +1,4 @@
+import { StickyNote } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -62,12 +63,17 @@ export default function WorkOrdersListPage() {
                   {(data ?? []).map((wo) => (
                     <TableRow key={wo.id}>
                       <TableCell className="max-w-[220px]">
-                        <Link
-                          to={`/dashboard/work-orders/${wo.id}`}
-                          className="text-primary font-semibold underline-offset-4 hover:underline"
-                        >
-                          {wo.title}
-                        </Link>
+                        <span className="inline-flex items-center gap-1.5">
+                          {wo.observationNotes?.trim() || wo.executionPhotos?.length || wo.extraItems?.length ? (
+                            <StickyNote className="size-3.5 shrink-0 text-amber-600" aria-label={t("exec.hasNotes")} />
+                          ) : null}
+                          <Link
+                            to={`/dashboard/work-orders/${wo.id}`}
+                            className="text-primary font-semibold underline-offset-4 hover:underline"
+                          >
+                            {wo.title}
+                          </Link>
+                        </span>
                         <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">{wo.description}</p>
                       </TableCell>
                       <TableCell>{assetNameById.get(wo.assetId) ?? `${wo.assetId.slice(0, 8)}…`}</TableCell>

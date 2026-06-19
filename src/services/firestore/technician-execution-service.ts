@@ -79,8 +79,18 @@ function cleanChecklist(draft: TechnicianExecutionDraft) {
       isDone: item.isDone,
       checkedAt: item.checkedAt,
       note: item.note?.trim() || undefined,
+      qtyUsed: item.qtyUsed?.trim() || undefined,
     })
   )
+}
+
+function cleanExtraItems(draft: TechnicianExecutionDraft) {
+  if (!draft.extraItems) return undefined
+  const rows = draft.extraItems
+    .map((it) => ({ desc: it.desc.trim(), qty: it.qty?.trim() || undefined }))
+    .filter((it) => it.desc)
+    .map((it) => stripUndefined(it))
+  return rows.length ? rows : undefined
 }
 
 function ensureCanUpdate(role: UserRole): void {
@@ -105,7 +115,8 @@ function draftPatch(draft: TechnicianExecutionDraft): Record<string, unknown> {
     meterReadingAtExecution: cleanMeterReading(draft),
     executionChecklist: cleanChecklist(draft),
     executionPhotos: cleanStringArray(draft.executionPhotos),
-    attachmentsPlaceholder: cleanStringArray(draft.executionPhotos),
+    extraItems: cleanExtraItems(draft),
+    observationNotes: draft.observationNotes?.trim() || undefined,
     requiredPartsNote: draft.requiredPartsNote?.trim() || undefined,
     safetyNotes: draft.safetyNotes?.trim() || undefined,
   })

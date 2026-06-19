@@ -14,6 +14,8 @@ export type TechnicianExecutionDraft = {
   meterReadingAtExecution?: WorkOrderExecutionMeterReading
   executionChecklist?: WorkOrderExecutionChecklistItem[]
   executionPhotos?: string[]
+  extraItems?: { desc: string; qty?: string }[]
+  observationNotes?: string
   requiredPartsNote?: string
   safetyNotes?: string
 }

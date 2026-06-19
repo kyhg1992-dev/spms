@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 
 import { WorkOrderOperationalActions } from "@/components/work-orders/work-order-operational-actions"
 import { WorkOrderProgressStepper } from "@/components/work-orders/work-order-progress-stepper"
+import { WorkOrderExecutionSummary } from "@/components/work-orders/work-order-execution-summary"
 import { ServiceTaskTable } from "@/components/work-orders/service-task-table"
 import { WorkOrderTimeline } from "@/components/work-orders/work-order-timeline"
 import { Badge } from "@/components/ui/badge"
@@ -93,6 +94,8 @@ export default function WorkOrderDetailPage() {
       <RequestRefCard workOrder={wo} />
 
       <ServiceTaskTable workOrder={wo} />
+
+      <WorkOrderExecutionSummary workOrder={wo} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-xl border-border/70 shadow-md">

@@ -155,6 +155,7 @@ function normalizeExecutionChecklist(v: unknown): WorkOrderExecutionChecklistIte
       if (typeof row.labelEn === "string") normalized.labelEn = row.labelEn
       if (checkedAt) normalized.checkedAt = checkedAt
       if (typeof row.note === "string") normalized.note = row.note
+      if (typeof row.qtyUsed === "string") normalized.qtyUsed = row.qtyUsed
       return normalized
     })
     .filter((row): row is WorkOrderExecutionChecklistItem => row !== null)
@@ -241,6 +242,17 @@ export function normalizeWorkOrder(docId: string, data: DocumentData): WorkOrder
     executionPhotos: Array.isArray(d.executionPhotos)
       ? d.executionPhotos.filter((item): item is string => typeof item === "string")
       : undefined,
+    extraItems: Array.isArray(d.extraItems)
+      ? d.extraItems
+          .map((it): { desc: string; qty?: string } | null => {
+            const row = it as Record<string, unknown>
+            return typeof row.desc === "string" && row.desc.trim()
+              ? { desc: row.desc, qty: typeof row.qty === "string" ? row.qty : undefined }
+              : null
+          })
+          .filter((x): x is { desc: string; qty?: string } => x !== null)
+      : undefined,
+    observationNotes: typeof d.observationNotes === "string" ? d.observationNotes : undefined,
     requiredPartsNote: typeof d.requiredPartsNote === "string" ? d.requiredPartsNote : undefined,
     safetyNotes: typeof d.safetyNotes === "string" ? d.safetyNotes : undefined,
     completionMeterReadingId: typeof d.completionMeterReadingId === "string" ? d.completionMeterReadingId : undefined,

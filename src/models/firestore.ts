@@ -88,6 +88,14 @@ export type WorkOrderExecutionChecklistItem = {
   isDone: boolean
   checkedAt?: Timestamp
   note?: string
+  /** Quantity of material actually consumed for this task (free text, e.g. "23", "2 L"). */
+  qtyUsed?: string
+}
+
+/** An extra material/task consumed during execution that was NOT in the template. */
+export type WorkOrderExtraItem = {
+  desc: string
+  qty?: string
 }
 
 export type WorkOrderExecutionMeterReading = {
@@ -202,6 +210,10 @@ export type WorkOrder = BaseDoc & {
   meterReadingAtExecution?: WorkOrderExecutionMeterReading
   executionChecklist?: WorkOrderExecutionChecklistItem[]
   executionPhotos?: string[]
+  /** Extra materials/tasks consumed during execution but not in the template. */
+  extraItems?: WorkOrderExtraItem[]
+  /** Free observation notes recorded during execution (e.g. body damage, worn tire). */
+  observationNotes?: string
   requiredPartsNote?: string
   safetyNotes?: string
   completionMeterReadingId?: string

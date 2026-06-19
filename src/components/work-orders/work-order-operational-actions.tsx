@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { WorkOrderReassignmentDialog } from "@/components/work-orders/work-order-reassignment-dialog"
+import { WorkOrderExecutionDialog } from "@/components/work-orders/work-order-execution-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -116,9 +117,6 @@ export function WorkOrderOperationalActions({
   const [dialog, setDialog] = useState<ActionDialog>(null)
   const [reassignOpen, setReassignOpen] = useState(false)
   const [busyAction, setBusyAction] = useState<string | null>(null)
-  const [completionNotes, setCompletionNotes] = useState(workOrder.completionNotes ?? "")
-  const [safetyNotes, setSafetyNotes] = useState(workOrder.safetyNotes ?? "")
-  const [partsNote, setPartsNote] = useState(workOrder.requiredPartsNote ?? "")
   const [rejectionReason, setRejectionReason] = useState("")
 
   const lifecycleStatus = getWorkOrderLifecycleStatus(workOrder)
@@ -136,11 +134,9 @@ export function WorkOrderOperationalActions({
   const validation = useMemo(() => {
     const start = canStartExecution(workOrder)
     const draft = canSaveExecutionDraft(workOrder)
-    const complete = canCompleteExecution(workOrder, {
-      completionNotes: completionNotes.trim() || "ready",
-    })
+    const complete = canCompleteExecution(workOrder, { completionNotes: "ready" })
     return { start, draft, complete }
-  }, [completionNotes, workOrder])
+  }, [workOrder])
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
@@ -167,17 +163,12 @@ export function WorkOrderOperationalActions({
     }
   }
 
-  const draftPayload = {
-    completionNotes,
-    requiredPartsNote: partsNote,
-    safetyNotes,
-  }
   const offlineDraft =
     user?.uid
       ? createOfflineExecutionDraft({
           workOrderId: workOrder.id,
           technicianUid: user.uid,
-          completionNotes,
+          completionNotes: workOrder.completionNotes ?? "",
         })
       : null
 
@@ -300,31 +291,24 @@ export function WorkOrderOperationalActions({
         </p>
       ) : null}
 
-      <ExecutionDialog
+      <WorkOrderExecutionDialog
+        workOrder={workOrder}
         open={dialog === "draft" || dialog === "complete"}
-        title={dialog === "complete" ? labels.complete : labels.draft}
-        labels={labels}
+        mode={dialog === "complete" ? "complete" : "draft"}
         busy={busyAction !== null}
-        completionNotes={completionNotes}
-        safetyNotes={safetyNotes}
-        partsNote={partsNote}
-        dir={dir}
-        setCompletionNotes={setCompletionNotes}
-        setSafetyNotes={setSafetyNotes}
-        setPartsNote={setPartsNote}
         onOpenChange={(open) => setDialog(open ? dialog : null)}
-        onSubmit={() =>
+        onSubmit={(draft) =>
           void runAction(dialog === "complete" ? labels.complete : labels.draft, () =>
             dialog === "complete"
               ? completeTechnicianExecution(spmsRole!, {
                   workOrderId: workOrder.id,
                   technicianUid: user!.uid,
-                  draft: draftPayload,
+                  draft,
                 })
               : saveTechnicianExecutionDraft(spmsRole!, {
                   workOrderId: workOrder.id,
                   technicianUid: user!.uid,
-                  draft: draftPayload,
+                  draft,
                 })
           )
         }
@@ -361,52 +345,6 @@ export function WorkOrderOperationalActions({
 }
 
 type Labels = typeof text.ar
-
-function ExecutionDialog(props: {
-  open: boolean
-  title: string
-  labels: Labels
-  dir: "rtl" | "ltr"
-  busy: boolean
-  completionNotes: string
-  safetyNotes: string
-  partsNote: string
-  setCompletionNotes: (value: string) => void
-  setSafetyNotes: (value: string) => void
-  setPartsNote: (value: string) => void
-  onOpenChange: (open: boolean) => void
-  onSubmit: () => void
-}) {
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent dir={props.dir} className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{props.title}</DialogTitle>
-          <DialogDescription>{props.labels.executionDescription}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4">
-          <Field label={props.labels.completionNotes}>
-            <Textarea rows={3} value={props.completionNotes} placeholder={props.labels.quickNote} onChange={(event) => props.setCompletionNotes(event.target.value)} />
-          </Field>
-          <Field label={props.labels.partsNote}>
-            <Textarea rows={2} value={props.partsNote} onChange={(event) => props.setPartsNote(event.target.value)} />
-          </Field>
-          <Field label={props.labels.safetyNotes}>
-            <Textarea rows={2} value={props.safetyNotes} onChange={(event) => props.setSafetyNotes(event.target.value)} />
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={props.busy} onClick={() => props.onOpenChange(false)}>
-            {props.labels.cancel}
-          </Button>
-          <Button type="button" disabled={props.busy} onClick={props.onSubmit}>
-            {props.labels.submit}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 function RejectDialog(props: {
   open: boolean

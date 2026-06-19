@@ -71,7 +71,8 @@ service cloud.firestore {
         "delegationHistory", "status", "lifecycleStatus", "priority", "dueDate", "closedAt",
         "closedByUid", "executionStartedAt", "executionCompletedAt", "technicianNotes", "laborHours",
         "downtimeMinutes", "downtimeHours", "completionNotes", "actualLaborHours", "actualDowntimeHours",
-        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "requiredPartsNote",
+        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "extraItems",
+        "observationNotes", "requiredPartsNote",
         "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "internalNotes",
         "estimatedCost", "actualCost", "approvalRequired", "approvedByUid", "approvedAt", "rejectedAt",
         "rejectedByUid", "rejectionReason", "pmScheduleId", "sourceType", "sourceRef",
@@ -85,7 +86,8 @@ service cloud.firestore {
       return [
         "status", "lifecycleStatus", "executionStartedAt", "executionCompletedAt", "technicianNotes",
         "completionNotes", "actualLaborHours", "actualDowntimeHours", "laborHours", "downtimeHours",
-        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "requiredPartsNote",
+        "meterReadingAtExecution", "executionChecklist", "executionPhotos", "extraItems",
+        "observationNotes", "requiredPartsNote",
         "safetyNotes", "completionMeterReadingId", "attachmentsPlaceholder", "updatedAt"
       ];
     }
