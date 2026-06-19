@@ -219,6 +219,23 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "exec.done": { ar: "تمّ", en: "Done" },
   "exec.pending": { ar: "لم يُنفّذ", en: "Pending" },
   "exec.hasNotes": { ar: "يحتوي ملاحظات", en: "Has notes" },
+  "exec.download": { ar: "تنزيل", en: "Download" },
+  "exec.viewPhoto": { ar: "عرض الصورة", en: "View photo" },
+  // Edit work order
+  "woedit.title": { ar: "تعديل أمر العمل", en: "Edit work order" },
+  "woedit.titleField": { ar: "العنوان", en: "Title" },
+  "woedit.desc": { ar: "الوصف", en: "Description" },
+  "woedit.priority": { ar: "الأولوية", en: "Priority" },
+  "woedit.internalNotes": { ar: "ملاحظات داخلية", en: "Internal notes" },
+  "woedit.saved": { ar: "تم حفظ التعديلات", en: "Changes saved" },
+  "woedit.edit": { ar: "تعديل", en: "Edit" },
+  // Dashboard pending
+  "dash.myPending": { ar: "الطلبات العالقة لديك", en: "Your pending requests" },
+  "dash.myPendingHint": { ar: "أوامر العمل المنتظرة لإجرائك.", en: "Work orders waiting on your action." },
+  "dash.noPending": { ar: "لا طلبات عالقة لديك.", en: "No pending requests for you." },
+  // WO list split
+  "wo.viewPending": { ar: "العالقة", en: "Pending" },
+  "wo.viewDone": { ar: "المنفّذة", en: "Executed" },
   "common.yes": { ar: "نعم", en: "Yes" },
   "common.no": { ar: "لا", en: "No" },
   "step.open": { ar: "مفتوح", en: "Open" },

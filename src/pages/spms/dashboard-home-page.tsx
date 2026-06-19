@@ -16,6 +16,7 @@ import {
 } from "recharts"
 
 import { AnnouncementsCard } from "@/components/dashboard/announcements-card"
+import { MyPendingCard } from "@/components/dashboard/my-pending-card"
 import { LiveClock } from "@/components/dashboard/live-clock"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -212,6 +213,10 @@ export default function DashboardHomePage() {
       </div>
 
       {errStrip}
+
+      <section>
+        <MyPendingCard />
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiTile

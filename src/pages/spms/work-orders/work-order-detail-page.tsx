@@ -1,4 +1,4 @@
-import { Printer, Save } from "lucide-react"
+import { Pencil, Printer, Save } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { WorkOrderOperationalActions } from "@/components/work-orders/work-order-operational-actions"
 import { WorkOrderProgressStepper } from "@/components/work-orders/work-order-progress-stepper"
 import { WorkOrderExecutionSummary } from "@/components/work-orders/work-order-execution-summary"
+import { WorkOrderEditDialog } from "@/components/work-orders/work-order-edit-dialog"
 import { ServiceTaskTable } from "@/components/work-orders/service-task-table"
 import { WorkOrderTimeline } from "@/components/work-orders/work-order-timeline"
 import { Badge } from "@/components/ui/badge"
@@ -27,9 +28,12 @@ export default function WorkOrderDetailPage() {
   const { workOrderId } = useParams<{ workOrderId: string }>()
   const { t, lang } = useI18n()
   const L = useLabels()
+  const { spmsRole } = useAuth()
+  const [editOpen, setEditOpen] = useState(false)
   const { data, isLoading } = useWorkOrdersQuery()
   const assets = useAssetsQuery()
   const activityLogs = useActivityLogsQuery()
+  const canEdit = spmsRole === "admin" || spmsRole === "manager"
 
   const wo = data?.find((w) => w.id === workOrderId) as (WorkOrder & { id: string }) | undefined
   const assetName = wo ? assets.data?.find((a) => a.id === wo.assetId)?.assetName : undefined
@@ -79,13 +83,23 @@ export default function WorkOrderDetailPage() {
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{assetName ?? wo.assetId}</p>
         </div>
-        <Button asChild variant="outline" size="sm" className="gap-2 print:hidden">
-          <Link to={`/print/work-order/${wo.id}`} target="_blank" rel="noreferrer">
-            <Printer className="size-4" />
-            {t("wod.card")}
-          </Link>
-        </Button>
+        <div className="flex gap-2 print:hidden">
+          {canEdit ? (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-4" />
+              {t("woedit.edit")}
+            </Button>
+          ) : null}
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <Link to={`/print/work-order/${wo.id}`} target="_blank" rel="noreferrer">
+              <Printer className="size-4" />
+              {t("wod.card")}
+            </Link>
+          </Button>
+        </div>
       </div>
+
+      <WorkOrderEditDialog workOrder={wo} open={editOpen} onOpenChange={setEditOpen} />
 
       <WorkOrderProgressStepper workOrder={wo} />
 

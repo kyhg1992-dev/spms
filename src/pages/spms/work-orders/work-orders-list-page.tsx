@@ -1,7 +1,9 @@
 import { StickyNote } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -10,13 +12,30 @@ import { useI18n, useLabels } from "@/i18n/i18n"
 import { useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
 
+const TERMINAL = new Set(["closed", "cancelled"])
+
 export default function WorkOrdersListPage() {
   const { t } = useI18n()
   const L = useLabels()
   const { data, isLoading, error } = useWorkOrdersQuery()
   const assets = useAssetsQuery()
+  const [view, setView] = useState<"pending" | "done">("pending")
 
   const assetNameById = new Map((assets.data ?? []).map((a) => [a.id, a.assetName]))
+
+  const counts = useMemo(() => {
+    const all = data ?? []
+    const done = all.filter((w) => TERMINAL.has(String(w.status))).length
+    return { pending: all.length - done, done }
+  }, [data])
+
+  const rows = useMemo(
+    () =>
+      (data ?? []).filter((w) =>
+        view === "done" ? TERMINAL.has(String(w.status)) : !TERMINAL.has(String(w.status))
+      ),
+    [data, view]
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,9 +49,29 @@ export default function WorkOrdersListPage() {
       {error ? <p className="text-destructive text-sm">{t("wo.loadError")}</p> : null}
 
       <Card className="overflow-hidden rounded-xl border-border/80 shadow-md">
-        <CardHeader>
-          <CardTitle>{t("wo.logTitle")}</CardTitle>
-          <CardDescription>{t("wo.logSubtitle")}</CardDescription>
+        <CardHeader className="gap-3">
+          <div>
+            <CardTitle>{t("wo.logTitle")}</CardTitle>
+            <CardDescription>{t("wo.logSubtitle")}</CardDescription>
+          </div>
+          <div className="inline-flex w-fit rounded-lg border bg-muted/40 p-0.5">
+            <Button
+              size="sm"
+              variant={view === "pending" ? "default" : "ghost"}
+              className="h-8 gap-1.5"
+              onClick={() => setView("pending")}
+            >
+              {t("wo.viewPending")} <Badge variant="secondary" className="tabular-nums">{counts.pending}</Badge>
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "done" ? "default" : "ghost"}
+              className="h-8 gap-1.5"
+              onClick={() => setView("done")}
+            >
+              {t("wo.viewDone")} <Badge variant="secondary" className="tabular-nums">{counts.done}</Badge>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0 px-4 pb-6">
           {isLoading ? (
@@ -41,7 +80,7 @@ export default function WorkOrdersListPage() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : (data ?? []).length === 0 ? (
+          ) : rows.length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-2 py-14 text-center">
               <p className="font-medium">{t("wo.empty")}</p>
               <p className="text-muted-foreground max-w-sm text-sm">{t("wo.emptyHint")}</p>
@@ -60,7 +99,7 @@ export default function WorkOrdersListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(data ?? []).map((wo) => (
+                  {rows.map((wo) => (
                     <TableRow key={wo.id}>
                       <TableCell className="max-w-[220px]">
                         <span className="inline-flex items-center gap-1.5">

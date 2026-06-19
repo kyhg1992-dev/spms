@@ -1,5 +1,7 @@
-import { Check, ClipboardCheck, X } from "lucide-react"
+import { Check, ClipboardCheck, Download, X } from "lucide-react"
+import { useState } from "react"
 
+import { PhotoLightbox } from "@/components/work-orders/photo-lightbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/i18n/i18n"
 import type { WorkOrder } from "@/models/firestore"
@@ -12,6 +14,7 @@ import type { WorkOrder } from "@/models/firestore"
  */
 export function WorkOrderExecutionSummary({ workOrder }: { workOrder: WorkOrder }) {
   const { t } = useI18n()
+  const [lightbox, setLightbox] = useState<number | null>(null)
   const checklist = workOrder.executionChecklist ?? []
   const extras = workOrder.extraItems ?? []
   const photos = workOrder.executionPhotos ?? []
@@ -102,14 +105,34 @@ export function WorkOrderExecutionSummary({ workOrder }: { workOrder: WorkOrder 
           <Section title={t("exec.photos")}>
             <div className="flex flex-wrap gap-2">
               {photos.map((src, i) => (
-                <a key={i} href={src} target="_blank" rel="noreferrer">
-                  <img src={src} alt="" className="size-24 rounded-md border object-cover" />
-                </a>
+                <div key={i} className="group relative">
+                  <button
+                    type="button"
+                    className="block overflow-hidden rounded-md border"
+                    aria-label={t("exec.viewPhoto")}
+                    onClick={() => setLightbox(i)}
+                  >
+                    <img src={src} alt="" className="size-24 object-cover transition-transform group-hover:scale-105" />
+                  </button>
+                  <a
+                    href={src}
+                    download={`photo-${i + 1}.jpg`}
+                    className="absolute end-1 top-1 rounded-full bg-black/55 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label={t("exec.download")}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="size-3.5" />
+                  </a>
+                </div>
               ))}
             </div>
           </Section>
         ) : null}
       </CardContent>
+
+      {lightbox !== null ? (
+        <PhotoLightbox photos={photos} index={lightbox} onClose={() => setLightbox(null)} />
+      ) : null}
     </Card>
   )
 }
