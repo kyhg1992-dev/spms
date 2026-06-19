@@ -1,4 +1,4 @@
-import { Download, History, Printer, Search, StickyNote, Trash2 } from "lucide-react"
+import { Download, History, ImageIcon, Printer, Search, StickyNote, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "sonner"
@@ -233,8 +233,11 @@ export default function MaintenanceLogPage() {
                                 </span>
                               ) : null}
                               <span className="line-clamp-1">{wo.serviceLevelNameAr ?? wo.title}</span>
-                              {wo.observationNotes?.trim() || wo.executionPhotos?.length || wo.extraItems?.length ? (
+                              {wo.observationNotes?.trim() || wo.extraItems?.length ? (
                                 <StickyNote className="size-3.5 shrink-0 text-amber-600" aria-label={t("exec.hasNotes")} />
+                              ) : null}
+                              {wo.executionPhotos?.length ? (
+                                <ImageIcon className="size-3.5 shrink-0 text-sky-600" aria-label={t("exec.photos")} />
                               ) : null}
                             </span>
                           </Link>

@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
 import { useI18n, useLabels } from "@/i18n/i18n"
 import { useActivityLogsQuery, useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
-import { formatArDate, formatArDateTime } from "@/lib/format"
+import { formatArDate, formatArDateTime, formatDuration } from "@/lib/format"
 import { buildWorkOrderTimeline } from "@/lib/work-order-timeline"
 import type { WorkOrder } from "@/models/firestore"
 import { updateWorkOrder } from "@/services/firestore/spms-service"
@@ -133,11 +133,7 @@ export default function WorkOrderDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <KV
               k={t("wod.execDuration")}
-              v={
-                (wo.actualLaborHours ?? wo.laborHours) !== undefined
-                  ? String(wo.actualLaborHours ?? wo.laborHours)
-                  : "—"
-              }
+              v={formatDuration(wo.actualLaborHours ?? wo.laborHours, { d: t("dur.d"), h: t("dur.h"), m: t("dur.m") })}
             />
             <KV k={t("wod.approvalRequired")} v={wo.approvalRequired ? t("common.yes") : t("common.no")} />
           </CardContent>

@@ -40,6 +40,7 @@ export const router = createBrowserRouter([
       { path: "/print/maintenance-log", element: lazyPage(() => import("@/pages/spms/maintenance-log-print-page")) },
       { path: "/print/sticker/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-sticker-print-page")) },
       { path: "/print/work-order/:workOrderId", element: lazyPage(() => import("@/pages/spms/work-orders/work-order-card-print-page")) },
+      { path: "/print/execution/:workOrderId", element: lazyPage(() => import("@/pages/spms/work-orders/execution-summary-print-page")) },
       {
         path: "/dashboard",
         element: <DashboardLayout />,

@@ -1,7 +1,9 @@
-import { Check, ClipboardCheck, Download, X } from "lucide-react"
+import { Check, ClipboardCheck, Download, Printer, X } from "lucide-react"
 import { useState } from "react"
+import { Link } from "react-router-dom"
 
 import { PhotoLightbox } from "@/components/work-orders/photo-lightbox"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/i18n/i18n"
 import type { WorkOrder } from "@/models/firestore"
@@ -12,7 +14,7 @@ import type { WorkOrder } from "@/models/firestore"
  * parts notes, and photos. Shown to the approver so the list is visible before
  * approval. Renders nothing when there is no execution data yet.
  */
-export function WorkOrderExecutionSummary({ workOrder }: { workOrder: WorkOrder }) {
+export function WorkOrderExecutionSummary({ workOrder }: { workOrder: WorkOrder & { id: string } }) {
   const { t } = useI18n()
   const [lightbox, setLightbox] = useState<number | null>(null)
   const checklist = workOrder.executionChecklist ?? []
@@ -32,12 +34,19 @@ export function WorkOrderExecutionSummary({ workOrder }: { workOrder: WorkOrder 
 
   return (
     <Card className="rounded-xl border-border/70 shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ClipboardCheck className="size-4" aria-hidden />
-          {t("exec.summary")}
-        </CardTitle>
-        <CardDescription>{t("exec.summaryHint")}</CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ClipboardCheck className="size-4" aria-hidden />
+            {t("exec.summary")}
+          </CardTitle>
+          <CardDescription className="mt-1">{t("exec.summaryHint")}</CardDescription>
+        </div>
+        <Button asChild variant="outline" size="sm" className="gap-2 print:hidden">
+          <Link to={`/print/execution/${workOrder.id}`} target="_blank" rel="noreferrer">
+            <Printer className="size-4" /> {t("exec.print")}
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
         {checklist.length > 0 ? (

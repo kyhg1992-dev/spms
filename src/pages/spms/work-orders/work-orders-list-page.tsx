@@ -1,4 +1,4 @@
-import { StickyNote } from "lucide-react"
+import { ImageIcon, StickyNote } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
@@ -103,8 +103,11 @@ export default function WorkOrdersListPage() {
                     <TableRow key={wo.id}>
                       <TableCell className="max-w-[220px]">
                         <span className="inline-flex items-center gap-1.5">
-                          {wo.observationNotes?.trim() || wo.executionPhotos?.length || wo.extraItems?.length ? (
+                          {wo.observationNotes?.trim() || wo.extraItems?.length ? (
                             <StickyNote className="size-3.5 shrink-0 text-amber-600" aria-label={t("exec.hasNotes")} />
+                          ) : null}
+                          {wo.executionPhotos?.length ? (
+                            <ImageIcon className="size-3.5 shrink-0 text-sky-600" aria-label={t("exec.photos")} />
                           ) : null}
                           <Link
                             to={`/dashboard/work-orders/${wo.id}`}

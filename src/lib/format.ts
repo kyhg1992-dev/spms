@@ -24,3 +24,23 @@ export function formatNum(value: number | undefined | null): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "—"
   return value.toLocaleString("en-US")
 }
+
+/** Break decimal hours into whole days / hours / minutes. */
+export function durationParts(hours: number | undefined | null): { d: number; h: number; m: number } | null {
+  if (typeof hours !== "number" || !Number.isFinite(hours) || hours < 0) return null
+  const totalMin = Math.round(hours * 60)
+  return { d: Math.floor(totalMin / 1440), h: Math.floor((totalMin % 1440) / 60), m: totalMin % 60 }
+}
+
+/** "1d 3h 20m" style duration from decimal hours, using the given unit labels. */
+export function formatDuration(
+  hours: number | undefined | null,
+  units: { d: string; h: string; m: string }
+): string {
+  const p = durationParts(hours)
+  if (!p) return "—"
+  if (p.d === 0 && p.h === 0 && p.m === 0) return `0${units.m}`
+  return [p.d ? `${p.d}${units.d}` : "", p.h ? `${p.h}${units.h}` : "", p.m ? `${p.m}${units.m}` : ""]
+    .filter(Boolean)
+    .join(" ")
+}
