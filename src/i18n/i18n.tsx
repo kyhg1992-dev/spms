@@ -252,11 +252,21 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "set.resetting": { ar: "جارٍ التصفير…", en: "Resetting…" },
   // Notifications
   "notif.title": { ar: "الإشعارات", en: "Notifications" },
-  "notif.empty": { ar: "لا توجد إشعارات.", en: "No notifications." },
-  "notif.markAllRead": { ar: "تعليم الكل كمقروء", en: "Mark all read" },
+  "notif.subtitle": { ar: "تنبيهات النظام وأوامر العمل والصيانة", en: "System, work-order, and maintenance alerts" },
+  "notif.updating": { ar: "تحديث…", en: "Updating…" },
+  "notif.loadError": { ar: "تعذر تحميل الإشعارات.", en: "Failed to load notifications." },
+  "notif.inbox": { ar: "صندوق الوارد", en: "Inbox" },
+  "notif.inboxHint": { ar: "يُفلتر حسب المستخدم ما لم تكن صلاحية مدير", en: "Filtered per user unless you are a manager" },
+  "notif.empty": { ar: "لا توجد إشعارات", en: "No notifications" },
+  "notif.emptyHint": { ar: "ستظهر التنبيهات الجديدة هنا فور وصولها.", en: "New alerts appear here as they arrive." },
   // Activity log
   "act.title": { ar: "سجل النشاط النظامي", en: "System activity log" },
   "act.subtitle": { ar: "أثر تدقيقي لكل الإجراءات.", en: "Audit trail of all actions." },
+  "act.loadError": { ar: "تعذر تحميل السجل وفق سياسات Firestore.", en: "Failed to load the log under Firestore policies." },
+  "act.colActivity": { ar: "النشاط", en: "Activity" },
+  "act.colEntity": { ar: "نوع الكيان", en: "Entity type" },
+  "act.colId": { ar: "معرّف", en: "ID" },
+  "act.colTime": { ar: "الوقت", en: "Time" },
   "act.empty": { ar: "لا يوجد نشاط مسجّل.", en: "No recorded activity." },
   // Dashboard
   "dash.badge": { ar: "منصّة المؤسسة", en: "Enterprise platform" },

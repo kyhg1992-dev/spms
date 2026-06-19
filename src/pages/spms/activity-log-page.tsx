@@ -9,25 +9,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useI18n } from "@/i18n/i18n"
 import { useActivityLogsQuery } from "@/hooks/use-spms-data"
 import { formatArDateTime } from "@/lib/format"
 
 function ActivityBody() {
+  const { t } = useI18n()
   const q = useActivityLogsQuery(true)
 
   if (q.isLoading) return <Skeleton className="min-h-[320px] w-full rounded-xl" />
   if (q.error)
-    return <p className="text-destructive text-sm">تعذر تحميل السجل وفق سياسات Firestore لهذه الجلسة.</p>
+    return <p className="text-destructive text-sm">{t("act.loadError")}</p>
 
   return (
     <div className="-mx-4 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>النشاط العربي المعروض</TableHead>
-            <TableHead>نوع الكيان</TableHead>
-            <TableHead dir="ltr">معرّف</TableHead>
-            <TableHead>الوقت النظامي</TableHead>
+            <TableHead>{t("act.colActivity")}</TableHead>
+            <TableHead>{t("act.colEntity")}</TableHead>
+            <TableHead dir="ltr">{t("act.colId")}</TableHead>
+            <TableHead>{t("act.colTime")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

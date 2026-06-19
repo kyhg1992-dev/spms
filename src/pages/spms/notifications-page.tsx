@@ -4,33 +4,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { useNotificationsQuery } from "@/hooks/use-spms-data"
 import { formatArDateTime } from "@/lib/format"
-import { notificationPriorityAr, notificationTypeAr } from "@/lib/labels-ar"
+import { notificationPriorityAr } from "@/lib/labels-ar"
 
 export default function NotificationsPage() {
+  const { t } = useI18n()
+  const L = useLabels()
   const { data, isLoading, error, isFetching } = useNotificationsQuery()
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-bold text-2xl tracking-tight">الإشعارات</h1>
+        <h1 className="font-bold text-2xl tracking-tight">{t("notif.title")}</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          تنبيهات النظام وأوامر العمل والصيانة
+          {t("notif.subtitle")}
           {isFetching && !isLoading ? (
-            <span className="text-muted-foreground/80 ms-2 text-xs">(تحديث…)</span>
+            <span className="text-muted-foreground/80 ms-2 text-xs">({t("notif.updating")})</span>
           ) : null}
         </p>
       </div>
 
       {error ? (
-        <p className="text-destructive text-sm">تعذر تحميل الإشعارات.</p>
+        <p className="text-destructive text-sm">{t("notif.loadError")}</p>
       ) : null}
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>صندوق الوارد</CardTitle>
-          <CardDescription>يُفلتر حسب المستخدم ما لم تكن صلاحية مدير</CardDescription>
+          <CardTitle>{t("notif.inbox")}</CardTitle>
+          <CardDescription>{t("notif.inboxHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -41,8 +44,8 @@ export default function NotificationsPage() {
             </div>
           ) : (data ?? []).length === 0 ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 py-10 text-center">
-              <p className="font-medium">لا توجد إشعارات</p>
-              <p className="text-muted-foreground max-w-sm text-sm">ستظهر التنبيهات الجديدة هنا فور وصولها.</p>
+              <p className="font-medium">{t("notif.empty")}</p>
+              <p className="text-muted-foreground max-w-sm text-sm">{t("notif.emptyHint")}</p>
             </div>
           ) : (
             <ScrollArea className="h-[min(60vh,520px)] pe-2">
@@ -54,7 +57,7 @@ export default function NotificationsPage() {
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className={`font-medium ${n.isRead ? "text-muted-foreground" : ""}`}>{n.title}</p>
-                          <Badge variant="outline">{notificationTypeAr[n.type] ?? n.type}</Badge>
+                          <Badge variant="outline">{L.notifType(n.type)}</Badge>
                           <Badge
                             variant={
                               n.priority === "critical"
