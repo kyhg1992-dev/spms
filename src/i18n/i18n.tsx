@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
+import { makeLabels } from "@/lib/labels"
+
 export type Lang = "ar" | "en"
 
 const STORAGE_KEY = "spms.lang"
@@ -72,8 +74,49 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "common.create": { ar: "إنشاء", en: "Create" },
   "common.cancel": { ar: "إلغاء", en: "Cancel" },
   "common.delete": { ar: "حذف", en: "Delete" },
+  "common.edit": { ar: "تعديل", en: "Edit" },
+  "common.details": { ar: "تفاصيل", en: "Details" },
   "common.save": { ar: "حفظ", en: "Save" },
   "common.loading": { ar: "جارٍ التحميل…", en: "Loading…" },
+  "common.deleting": { ar: "يحذف…", en: "Deleting…" },
+  "common.prev": { ar: "السابق", en: "Previous" },
+  "common.next": { ar: "التالي", en: "Next" },
+  "common.actions": { ar: "إجراءات", en: "Actions" },
+  "common.allStatuses": { ar: "كل الحالات", en: "All statuses" },
+  "common.allCategories": { ar: "كل الفئات", en: "All categories" },
+  "common.clearFilters": { ar: "مسح المرشّحات", en: "Clear filters" },
+  "common.syncing": { ar: "مزامنة…", en: "Syncing…" },
+  // Table columns
+  "col.image": { ar: "صورة", en: "Image" },
+  "col.code": { ar: "الرمز", en: "Code" },
+  "col.name": { ar: "الاسم", en: "Name" },
+  "col.category": { ar: "الفئة", en: "Category" },
+  "col.location": { ar: "الموقع", en: "Location" },
+  "col.status": { ar: "الحالة", en: "Status" },
+  "col.nextService": { ar: "الخدمة القادمة", en: "Next service" },
+  "col.lastUpdate": { ar: "آخر تحديث", en: "Last update" },
+  // Assets page
+  "assets.title": { ar: "إدارة الأصول", en: "Asset management" },
+  "assets.subtitle": { ar: "جداول حيّة عبر Firestore مع تحديثات فورية", en: "Live Firestore tables with real-time updates" },
+  "assets.importExcel": { ar: "استيراد من Excel", en: "Import from Excel" },
+  "assets.add": { ar: "إضافة أصل", en: "Add asset" },
+  "assets.loadError": { ar: "تعذّر تحميل قائمة الأصول.", en: "Failed to load the asset list." },
+  "assets.tableTitle": { ar: "جدول الأصول", en: "Assets table" },
+  "assets.tableSubtitle": { ar: "بحث، تصفية، وترقيم صفحات", en: "Search, filter, and pagination" },
+  "assets.searchPlaceholder": { ar: "بحث برمز أو اسم أو تسلسلي أو موقع…", en: "Search by code, name, serial, or site…" },
+  "assets.emptyTitle": { ar: "لا توجد أصول مسجَّلة بعد", en: "No assets registered yet" },
+  "assets.emptyHint": { ar: "ابدأ بإضافة أصل أو استيراد من Excel.", en: "Start by adding an asset or importing from Excel." },
+  "assets.noResults": { ar: "لا توجد نتائج مطابقة", en: "No matching results" },
+  "assets.noResultsHint": { ar: "جرّب تغيير عبارات البحث أو التصفيات.", en: "Try changing your search or filters." },
+  "assets.selectAll": { ar: "تحديد كل النتائج", en: "Select all results" },
+  "assets.clearSelection": { ar: "إلغاء التحديد", en: "Clear selection" },
+  "assets.deleteSelected": { ar: "حذف المحدّد", en: "Delete selected" },
+  "assets.pageOf": { ar: "الصفحة", en: "Page" },
+  "assets.of": { ar: "من", en: "of" },
+  "assets.totalAfterFilter": { ar: "إجمالي بعد التصفية", en: "total after filter" },
+  "assets.bulkDeleteTitle": { ar: "حذف الأصول المحدّدة؟", en: "Delete selected assets?" },
+  "assets.bulkDeleteDesc": { ar: "سيُحذف المحدّد نهائياً ولا يمكن التراجع. (أوامر العمل والقراءات المرتبطة لا تُحذف تلقائياً.)", en: "Selected items are permanently deleted (linked work orders and readings are not removed automatically)." },
+  "assets.confirmDelete": { ar: "تأكيد الحذف", en: "Confirm delete" },
   // Dashboard
   "dash.badge": { ar: "منصّة المؤسسة", en: "Enterprise platform" },
   "dash.title": { ar: "لوحة قيادة للصيانة الوقائية الذكية", en: "Smart Preventive Maintenance Dashboard" },
@@ -168,6 +211,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<I18nValue>(() => ({ lang, dir, setLang, toggle, t }), [lang, dir, setLang, toggle, t])
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+}
+
+/** Language-aware data labels (statuses, priorities, roles…) bound to current lang. */
+export function useLabels() {
+  const { lang } = useI18n()
+  return useMemo(() => makeLabels(lang), [lang])
 }
 
 export function useI18n(): I18nValue {

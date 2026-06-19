@@ -35,10 +35,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { useAssetsQuery, useMaintenanceTemplatesQuery } from "@/hooks/use-spms-data"
 import { assetCategoryAr } from "@/lib/asset-categories"
 import { formatArDate } from "@/lib/format"
-import { assetStatusAr } from "@/lib/labels-ar"
 import { deriveNextServiceForAsset } from "@/lib/maintenance-next-service"
 import { serviceLevelColor } from "@/lib/spms-colors"
 import type { Asset, AssetStatus, MaintenanceSequenceTemplate } from "@/models/firestore"
@@ -53,6 +53,8 @@ type AssetRow = Asset & { id: string }
 
 export default function AssetsListPage() {
   const { spmsRole } = useAuth()
+  const { t } = useI18n()
+  const L = useLabels()
   const { data, isLoading, error, isFetching } = useAssetsQuery()
   const templates = useMaintenanceTemplatesQuery()
   const templatesById = useMemo(
@@ -103,7 +105,7 @@ export default function AssetsListPage() {
         return
       }
       await queryClient.invalidateQueries({ queryKey: ["assets"] })
-      toast.success(`تم حذف ${res.data ?? 0} أصل`)
+      toast.success(`${t("common.delete")}: ${res.data ?? 0}`)
       setSelected(new Set())
       setBulkConfirm(false)
     } finally {
@@ -146,10 +148,10 @@ export default function AssetsListPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="font-bold text-2xl tracking-tight">إدارة الأصول</h1>
+          <h1 className="font-bold text-2xl tracking-tight">{t("assets.title")}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            جداول حقيقية عبر Firestore مع تحديثات فورية
-            {isFetching && !isLoading ? <span className="ms-2 text-xs">(مزامنة…)</span> : null}
+            {t("assets.subtitle")}
+            {isFetching && !isLoading ? <span className="ms-2 text-xs">({t("common.syncing")})</span> : null}
           </p>
         </div>
         {canCreate ? (
@@ -157,7 +159,7 @@ export default function AssetsListPage() {
             <Button variant="outline" size="sm" className="gap-2" asChild>
               <Link to="/dashboard/assets/import">
                 <Upload className="size-4" aria-hidden />
-                استيراد من Excel
+                {t("assets.importExcel")}
               </Link>
             </Button>
             <Button
@@ -170,20 +172,20 @@ export default function AssetsListPage() {
               }}
             >
               <Plus className="size-4" aria-hidden />
-              إضافة أصل
+              {t("assets.add")}
             </Button>
           </div>
         ) : null}
       </div>
 
-      {error ? <p className="text-destructive text-sm">تعذر تحميل قائمة الأصول.</p> : null}
+      {error ? <p className="text-destructive text-sm">{t("assets.loadError")}</p> : null}
 
       <Card className="shadow-sm overflow-hidden">
         <CardHeader className="space-y-4 pb-2">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <CardTitle>جدول الأصول</CardTitle>
-              <CardDescription>بحث، تصفية، وترقيم صفحات</CardDescription>
+              <CardTitle>{t("assets.tableTitle")}</CardTitle>
+              <CardDescription>{t("assets.tableSubtitle")}</CardDescription>
             </div>
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
@@ -191,7 +193,7 @@ export default function AssetsListPage() {
               <Search className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2" />
               <Input
                 className="ps-9"
-                placeholder="بحث برمز أو اسم أو تسلسلي أو موقع…"
+                placeholder={t("assets.searchPlaceholder")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value)
@@ -207,13 +209,13 @@ export default function AssetsListPage() {
               }}
             >
               <SelectTrigger className="w-full lg:w-[160px]" size="sm">
-                <SelectValue placeholder="كل الحالات" />
+                <SelectValue placeholder={t("common.allStatuses")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">كل الحالات</SelectItem>
-                <SelectItem value="active">نشط</SelectItem>
-                <SelectItem value="maintenance">صيانة</SelectItem>
-                <SelectItem value="retired">متوقف</SelectItem>
+                <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
+                <SelectItem value="active">{L.assetStatus("active")}</SelectItem>
+                <SelectItem value="maintenance">{L.assetStatus("maintenance")}</SelectItem>
+                <SelectItem value="retired">{L.assetStatus("retired")}</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -224,10 +226,10 @@ export default function AssetsListPage() {
               }}
             >
               <SelectTrigger className="w-full lg:w-[180px]" size="sm">
-                <SelectValue placeholder="كل الفئات" />
+                <SelectValue placeholder={t("common.allCategories")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">كل الفئات</SelectItem>
+                <SelectItem value="all">{t("common.allCategories")}</SelectItem>
                 {categoriesOnFile.map((c) => (
                   <SelectItem key={c} value={c}>
                     {assetCategoryAr(c)}
@@ -284,15 +286,15 @@ export default function AssetsListPage() {
               {canDelete ? (
                 <div className="flex flex-wrap items-center gap-2 pb-3">
                   <Button variant="outline" size="sm" onClick={() => setSelected(new Set(filtered.map((r) => r.id)))}>
-                    تحديد كل النتائج ({filtered.length})
+                    {t("assets.selectAll")} ({filtered.length})
                   </Button>
                   {selected.size > 0 ? (
                     <>
                       <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
-                        إلغاء التحديد
+                        {t("assets.clearSelection")}
                       </Button>
                       <Button variant="destructive" size="sm" className="gap-1" onClick={() => setBulkConfirm(true)}>
-                        <Trash2 className="size-4" /> حذف المحدّد ({selected.size})
+                        <Trash2 className="size-4" /> {t("assets.deleteSelected")} ({selected.size})
                       </Button>
                     </>
                   ) : null}
@@ -303,15 +305,15 @@ export default function AssetsListPage() {
                   <TableHeader>
                     <TableRow>
                       {canDelete ? <TableHead className="w-8"></TableHead> : null}
-                      <TableHead className="w-[88px]">صورة</TableHead>
-                      <TableHead>الرمز</TableHead>
-                      <TableHead>الاسم</TableHead>
-                      <TableHead>الفئة</TableHead>
-                      <TableHead>الموقع</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>الخدمة القادمة</TableHead>
-                      <TableHead>آخر تحديث</TableHead>
-                      {(canUpdate || canDelete) && <TableHead className="w-12 text-end">إجراءات</TableHead>}
+                      <TableHead className="w-[88px]">{t("col.image")}</TableHead>
+                      <TableHead>{t("col.code")}</TableHead>
+                      <TableHead>{t("col.name")}</TableHead>
+                      <TableHead>{t("col.category")}</TableHead>
+                      <TableHead>{t("col.location")}</TableHead>
+                      <TableHead>{t("col.status")}</TableHead>
+                      <TableHead>{t("col.nextService")}</TableHead>
+                      <TableHead>{t("col.lastUpdate")}</TableHead>
+                      {(canUpdate || canDelete) && <TableHead className="w-12 text-end">{t("common.actions")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -352,7 +354,7 @@ export default function AssetsListPage() {
                         <TableCell>{assetCategoryAr(row.category)}</TableCell>
                         <TableCell>{row.location}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{assetStatusAr[row.status] ?? row.status}</Badge>
+                          <Badge variant="outline">{L.assetStatus(row.status)}</Badge>
                         </TableCell>
                         <TableCell>
                           {(() => {
@@ -382,7 +384,7 @@ export default function AssetsListPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link to={`/dashboard/assets/${row.id}`}>تفاصيل</Link>
+                                  <Link to={`/dashboard/assets/${row.id}`}>{t("common.details")}</Link>
                                 </DropdownMenuItem>
                                 {canUpdate ? (
                                   <DropdownMenuItem
@@ -392,7 +394,7 @@ export default function AssetsListPage() {
                                       setFormOpen(true)
                                     }}
                                   >
-                                    تعديل
+                                    {t("common.edit")}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canDelete ? (
@@ -405,7 +407,7 @@ export default function AssetsListPage() {
                                         setDeleteOpen(true)
                                       }}
                                     >
-                                      حذف
+                                      {t("common.delete")}
                                     </DropdownMenuItem>
                                   </>
                                 ) : null}
@@ -421,7 +423,7 @@ export default function AssetsListPage() {
 
               <div className="flex flex-col items-center justify-between gap-3 pt-6 sm:flex-row">
                 <p className="text-muted-foreground text-sm tabular-nums">
-                  الصفحة {currentPage} من {totalPages} — إجمالي {filtered.length} أصل بعد التصفية
+                  {t("assets.pageOf")} {currentPage} {t("assets.of")} {totalPages} — {filtered.length} {t("assets.totalAfterFilter")}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -430,7 +432,7 @@ export default function AssetsListPage() {
                     disabled={currentPage <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
-                    السابق
+                    {t("common.prev")}
                   </Button>
                   <Button
                     variant="outline"
@@ -438,7 +440,7 @@ export default function AssetsListPage() {
                     disabled={currentPage >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   >
-                    التالي
+                    {t("common.next")}
                   </Button>
                 </div>
               </div>
@@ -469,13 +471,13 @@ export default function AssetsListPage() {
       <AlertDialog open={bulkConfirm} onOpenChange={setBulkConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف {selected.size} أصل؟</AlertDialogTitle>
+            <AlertDialogTitle>{t("assets.bulkDeleteTitle")} ({selected.size})</AlertDialogTitle>
             <AlertDialogDescription>
-              سيُحذف المحدّد نهائياً ولا يمكن التراجع. (أوامر العمل والقراءات المرتبطة لا تُحذف تلقائياً.)
+              {t("assets.bulkDeleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkBusy}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel disabled={bulkBusy}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={bulkBusy}
               onClick={(e) => {
@@ -483,7 +485,7 @@ export default function AssetsListPage() {
                 void runBulkDelete()
               }}
             >
-              {bulkBusy ? "يحذف…" : "تأكيد الحذف"}
+              {bulkBusy ? t("common.deleting") : t("assets.confirmDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
