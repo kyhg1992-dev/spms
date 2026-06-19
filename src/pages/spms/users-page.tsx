@@ -18,9 +18,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAuth } from "@/contexts/auth-context"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { useUsersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
-import { userRoleAr } from "@/lib/labels-ar"
 import type { SpmsUser } from "@/models/firestore"
 import { updateUser } from "@/services/firestore/spms-service"
 import { deleteUserAccount, getUserSecret } from "@/services/firestore/user-admin-service"
@@ -70,17 +70,16 @@ function PasswordCell({ uid }: { uid: string }) {
 function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
   const { data, isLoading, error } = useUsersQuery()
   const { spmsRole, user: actor } = useAuth()
+  const { t } = useI18n()
+  const L = useLabels()
   const queryClient = useQueryClient()
   const [busyId, setBusyId] = useState<string | null>(null)
   const isAdmin = spmsRole === "admin"
 
   async function removeUser(row: UserRow) {
     if (!isAdmin) return
-    if (row.id === actor?.uid) {
-      toast.error("لا يمكنك حذف حسابك الحالي")
-      return
-    }
-    if (!window.confirm(`حذف المستخدم «${row.displayName}» نهائياً؟ سيفقد صلاحيته فوراً.`)) return
+    if (row.id === actor?.uid) return
+    if (!window.confirm(`${t("users.deleteUser")} «${row.displayName}»؟`)) return
     setBusyId(row.id)
     try {
       const res = await deleteUserAccount(row.id)
@@ -88,7 +87,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
         toast.error(res.error)
         return
       }
-      toast.success("تم حذف المستخدم")
+      toast.success(t("users.deleted"))
       await queryClient.invalidateQueries({ queryKey: ["users"] })
     } finally {
       setBusyId(null)
@@ -97,10 +96,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
 
   async function toggleActive(row: UserRow) {
     if (!isAdmin) return
-    if (row.id === actor?.uid) {
-      toast.error("لا يمكنك تعطيل حسابك الحالي")
-      return
-    }
+    if (row.id === actor?.uid) return
     setBusyId(row.id)
     try {
       const res = await updateUser("admin", row.id, { isActive: !row.isActive })
@@ -108,7 +104,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
         toast.error(res.error)
         return
       }
-      toast.success(row.isActive ? "تم تعطيل المستخدم" : "تم تفعيل المستخدم")
+      toast.success(row.isActive ? t("users.deactivated") : t("users.activated"))
       await queryClient.invalidateQueries({ queryKey: ["users"] })
     } finally {
       setBusyId(null)
@@ -117,12 +113,12 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
 
   return (
     <>
-      {error ? <p className="text-destructive text-sm">تعذر تحميل المستخدمين.</p> : null}
+      {error ? <p className="text-destructive text-sm">{t("users.loadError")}</p> : null}
 
       <Card className="shadow-sm overflow-hidden">
         <CardHeader>
-          <CardTitle>المستخدمون</CardTitle>
-          <CardDescription>أدوار SPMS والحسابات النشطة</CardDescription>
+          <CardTitle>{t("users.title")}</CardTitle>
+          <CardDescription>{t("users.cardSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="p-0 px-4 pb-6">
           {isLoading ? (
@@ -133,21 +129,21 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
             </div>
           ) : (data ?? []).length === 0 ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-2 py-14 text-center">
-              <p className="font-medium">لا يوجد مستخدمون</p>
-              <p className="text-muted-foreground max-w-sm text-sm">أضف أول مستخدم لبدء التشغيل.</p>
+              <p className="font-medium">{t("users.empty")}</p>
+              <p className="text-muted-foreground max-w-sm text-sm">{t("users.emptyHint")}</p>
             </div>
           ) : (
             <div className="-mx-4 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead className="hidden sm:table-cell">البريد</TableHead>
-                    <TableHead>الدور</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    {isAdmin ? <TableHead>كلمة المرور</TableHead> : null}
-                    <TableHead className="hidden md:table-cell">آخر تحديث</TableHead>
-                    {isAdmin ? <TableHead className="w-12 text-end">إجراءات</TableHead> : null}
+                    <TableHead>{t("col.userName")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("col.email")}</TableHead>
+                    <TableHead>{t("col.role")}</TableHead>
+                    <TableHead>{t("col.status")}</TableHead>
+                    {isAdmin ? <TableHead>{t("col.password")}</TableHead> : null}
+                    <TableHead className="hidden md:table-cell">{t("col.lastUpdate")}</TableHead>
+                    {isAdmin ? <TableHead className="w-12 text-end">{t("common.actions")}</TableHead> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -156,13 +152,13 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                       <TableCell className="font-medium">{u.displayName}</TableCell>
                       <TableCell className="hidden text-muted-foreground text-sm sm:table-cell" dir="ltr">{u.email}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{userRoleAr[u.role] ?? u.role}</Badge>
+                        <Badge variant="outline">{L.role(u.role)}</Badge>
                       </TableCell>
                       <TableCell>
                         {u.isActive ? (
-                          <Badge variant="secondary">نشط</Badge>
+                          <Badge variant="secondary">{t("users.active")}</Badge>
                         ) : (
-                          <Badge variant="destructive">موقوف</Badge>
+                          <Badge variant="destructive">{t("users.suspended")}</Badge>
                         )}
                       </TableCell>
                       {isAdmin ? (
@@ -183,10 +179,10 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit(u)}>تعديل</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onEdit(u)}>{t("common.edit")}</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => void toggleActive(u)}>
-                                {u.isActive ? "تعطيل" : "تفعيل"}
+                                {u.isActive ? t("users.deactivate") : t("users.activate")}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -194,7 +190,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
                                 disabled={u.id === actor?.uid}
                                 onClick={() => void removeUser(u)}
                               >
-                                حذف المستخدم
+                                {t("users.deleteUser")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -214,6 +210,7 @@ function UsersTable({ onEdit }: { onEdit: (u: UserRow) => void }) {
 
 export default function UsersPage() {
   const { spmsRole } = useAuth()
+  const { t } = useI18n()
   const isAdmin = spmsRole === "admin"
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<"create" | "edit">("create")
@@ -223,8 +220,8 @@ export default function UsersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-bold text-2xl tracking-tight">المستخدمون</h1>
-          <p className="text-muted-foreground mt-1 text-sm">إدارة الأدوار والوصول (للمدراء والمسؤولين)</p>
+          <h1 className="font-bold text-2xl tracking-tight">{t("users.title")}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t("users.subtitle")}</p>
         </div>
         {isAdmin ? (
           <Button
@@ -237,7 +234,7 @@ export default function UsersPage() {
             }}
           >
             <UserPlus className="size-4" aria-hidden />
-            إضافة مستخدم
+            {t("users.add")}
           </Button>
         ) : null}
       </div>

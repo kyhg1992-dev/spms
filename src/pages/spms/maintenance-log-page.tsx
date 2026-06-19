@@ -19,9 +19,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAuth } from "@/contexts/auth-context"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { useAssetsQuery, useUsersQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate } from "@/lib/format"
-import { workOrderStatusAr } from "@/lib/labels-ar"
 import {
   TERMINAL_STATUSES as TERMINAL,
   filterMaintenanceLog,
@@ -36,6 +36,8 @@ import { deleteWorkOrder } from "@/services/firestore/spms-service"
  * day, asset number, or plate. The durable record lives in the work-order docs.
  */
 export default function MaintenanceLogPage() {
+  const { t } = useI18n()
+  const L = useLabels()
   const { data, isLoading } = useWorkOrdersQuery()
   const assets = useAssetsQuery()
   const users = useUsersQuery()
@@ -51,7 +53,7 @@ export default function MaintenanceLogPage() {
 
   async function remove(id: string) {
     if (!isAdmin) return
-    if (!window.confirm("حذف هذا السجل نهائياً؟ لا يمكن التراجع.")) return
+    if (!window.confirm(t("mlog.confirmDelete"))) return
     setBusyId(id)
     try {
       const res = await deleteWorkOrder("admin", id)
@@ -59,7 +61,7 @@ export default function MaintenanceLogPage() {
         toast.error(res.error)
         return
       }
-      toast.success("تم حذف السجل")
+      toast.success(t("mlog.deleted"))
       await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
     } finally {
       setBusyId(null)
@@ -82,29 +84,28 @@ export default function MaintenanceLogPage() {
 
   function exportExcel() {
     if (rows.length === 0) {
-      toast.error("لا نتائج للتصدير")
+      toast.error(t("mlog.noResults"))
       return
     }
     exportRowsToExcel(
-      `سجل-الصيانة-${fileDateStamp()}`,
+      `maintenance-log-${fileDateStamp()}`,
       rows.map((wo) => {
         const a = assetById.get(wo.assetId)
         return {
-          "التاريخ": formatArDate(effectiveDate(wo)),
-          "الأصل": a?.assetName ?? "",
-          "رقم الأصل": a?.assetCode ?? "",
-          "اللوحة": a?.plateNo ?? "",
-          "الإجراء": wo.serviceLevelNameAr ?? wo.title,
-          "المستوى": wo.serviceLevelCode ?? "",
-          "الفنّي": nameOf(wo.assignedTo ?? wo.assigneeId),
-          "المعتمِد": nameOf(wo.approvedByUid),
-          "رقم الطلب": wo.externalRequestNo ?? "",
-          "الحالة": workOrderStatusAr[String(wo.status)] ?? String(wo.status),
+          [t("col.date")]: formatArDate(effectiveDate(wo)),
+          [t("col.asset")]: a?.assetName ?? "",
+          [t("col.code")]: a?.assetCode ?? "",
+          [t("col.location")]: a?.plateNo ?? "",
+          [t("col.action")]: wo.serviceLevelNameAr ?? wo.title,
+          [t("col.status")]: L.woStatus(String(wo.status)),
+          [t("col.technician")]: nameOf(wo.assignedTo ?? wo.assigneeId),
+          [t("col.approver")]: nameOf(wo.approvedByUid),
+          [t("col.requestNo")]: wo.externalRequestNo ?? "",
         }
       }),
       "Maintenance Log"
     )
-    toast.success(`تم تصدير ${rows.length} سجلاً`)
+    toast.success(`${t("mlog.totalResults")}: ${rows.length}`)
   }
 
   function openPrint() {
@@ -121,63 +122,61 @@ export default function MaintenanceLogPage() {
       <div>
         <h1 className="flex items-center gap-2 font-bold text-2xl tracking-tight">
           <History className="size-6" style={{ color: "#0f766e" }} aria-hidden />
-          سجل الصيانة
+          {t("mlog.title")}
         </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          كل أوامر الصيانة على مستوى الأسطول — بحث باليوم أو رقم الأصل أو اللوحة.
-        </p>
+        <p className="text-muted-foreground mt-1 text-sm">{t("mlog.subtitle")}</p>
       </div>
 
       <Card className="shadow-sm overflow-hidden">
         <CardHeader>
-          <CardTitle>السجل التراكمي</CardTitle>
-          <CardDescription>التاريخ، الأصل، الإجراء، الفنّي، المعتمِد، رقم الطلب، والحالة.</CardDescription>
+          <CardTitle>{t("mlog.cardTitle")}</CardTitle>
+          <CardDescription>{t("mlog.cardSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[180px] flex-1 space-y-1.5">
-              <Label htmlFor="q" className="text-xs">بحث برقم الأصل أو اللوحة</Label>
+              <Label htmlFor="q" className="text-xs">{t("mlog.searchLabel")}</Label>
               <div className="relative">
                 <Search className="text-muted-foreground absolute inset-inline-start-2.5 top-2.5 size-4" aria-hidden />
                 <Input
                   id="q"
                   className="ps-8"
-                  placeholder="مثل: 1419 أو 938G"
+                  placeholder="1419 · 938G"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="from" className="text-xs">من</Label>
+              <Label htmlFor="from" className="text-xs">{t("mlog.from")}</Label>
               <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="to" className="text-xs">إلى</Label>
+              <Label htmlFor="to" className="text-xs">{t("mlog.to")}</Label>
               <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">الحالة</Label>
+              <Label className="text-xs">{t("col.status")}</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="active">قيد المعالجة</SelectItem>
-                  <SelectItem value="closed">مغلقة/ملغاة</SelectItem>
+                  <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
+                  <SelectItem value="active">{t("mlog.active")}</SelectItem>
+                  <SelectItem value="closed">{t("mlog.closedCancelled")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {(search || from || to || status !== "all") ? (
-              <Button variant="outline" onClick={() => { setSearch(""); setFrom(""); setTo(""); setStatus("all") }}>مسح</Button>
+              <Button variant="outline" onClick={() => { setSearch(""); setFrom(""); setTo(""); setStatus("all") }}>{t("common.clearFilters")}</Button>
             ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={exportExcel}>
-              <Download className="size-4" /> تصدير Excel
+              <Download className="size-4" /> {t("mlog.exportExcel")}
             </Button>
             <Button variant="outline" size="sm" onClick={openPrint}>
-              <Printer className="size-4" /> طباعة التقرير
+              <Printer className="size-4" /> {t("mlog.print")}
             </Button>
           </div>
 
@@ -189,20 +188,20 @@ export default function MaintenanceLogPage() {
             </div>
           ) : rows.length === 0 ? (
             <div className="text-muted-foreground flex min-h-[140px] items-center justify-center text-sm">
-              لا توجد نتائج مطابقة.
+              {t("mlog.noResults")}
             </div>
           ) : (
             <div className="-mx-2 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>التاريخ</TableHead>
-                    <TableHead>الأصل</TableHead>
-                    <TableHead>الإجراء</TableHead>
-                    <TableHead className="hidden md:table-cell">الفنّي</TableHead>
-                    <TableHead className="hidden lg:table-cell">المعتمِد</TableHead>
-                    <TableHead className="hidden sm:table-cell">رقم الطلب</TableHead>
-                    <TableHead>الحالة</TableHead>
+                    <TableHead>{t("col.date")}</TableHead>
+                    <TableHead>{t("col.asset")}</TableHead>
+                    <TableHead>{t("col.action")}</TableHead>
+                    <TableHead className="hidden md:table-cell">{t("col.technician")}</TableHead>
+                    <TableHead className="hidden lg:table-cell">{t("col.approver")}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t("col.requestNo")}</TableHead>
+                    <TableHead>{t("col.status")}</TableHead>
                     {isAdmin ? <TableHead className="w-10" /> : null}
                   </TableRow>
                 </TableHeader>
@@ -243,7 +242,7 @@ export default function MaintenanceLogPage() {
                           {wo.externalRequestNo?.trim() || "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{workOrderStatusAr[String(wo.status)] ?? wo.status}</Badge>
+                          <Badge variant="outline">{L.woStatus(String(wo.status))}</Badge>
                         </TableCell>
                         {isAdmin ? (
                           <TableCell>
@@ -252,7 +251,7 @@ export default function MaintenanceLogPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="size-7 text-destructive"
-                                aria-label="حذف السجل"
+                                aria-label={t("common.delete")}
                                 disabled={busyId === wo.id}
                                 onClick={() => void remove(wo.id)}
                               >
@@ -269,7 +268,7 @@ export default function MaintenanceLogPage() {
             </div>
           )}
 
-          <p className="text-muted-foreground text-xs">إجمالي النتائج: {rows.length}</p>
+          <p className="text-muted-foreground text-xs">{t("mlog.totalResults")}: {rows.length}</p>
         </CardContent>
       </Card>
     </div>
