@@ -3,19 +3,12 @@ import { Fragment, useMemo } from "react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useUsersQuery } from "@/hooks/use-spms-data"
+import { useI18n } from "@/i18n/i18n"
 import { getWorkOrderLifecycleStatus } from "@/lib/work-order-lifecycle"
 import { workOrderPendingOwner, type PendingStage } from "@/lib/work-order-pending"
 import type { WorkOrder } from "@/models/firestore"
 
-type Step = { key: string; labelAr: string }
-
-const STEPS: Step[] = [
-  { key: "open", labelAr: "مفتوح" },
-  { key: "assign", labelAr: "إسناد" },
-  { key: "execute", labelAr: "تنفيذ" },
-  { key: "approve", labelAr: "اعتماد" },
-  { key: "close", labelAr: "إغلاق" },
-]
+const STEP_KEYS = ["step.open", "step.assign", "step.execute", "step.approve", "step.close"] as const
 
 const STAGE_ICON: Record<PendingStage, typeof Clock> = {
   assign: UserCog,
@@ -39,7 +32,7 @@ function activeStepIndex(wo: WorkOrder & { id: string }): number {
     case "COMPLETED":
       return 3
     case "CLOSED":
-      return STEPS.length // all complete
+      return STEP_KEYS.length // all complete
     default:
       return 1
   }
@@ -51,6 +44,7 @@ function activeStepIndex(wo: WorkOrder & { id: string }): number {
  */
 export function WorkOrderProgressStepper({ workOrder }: { workOrder: WorkOrder & { id: string } }) {
   const users = useUsersQuery()
+  const { t } = useI18n()
   const status = getWorkOrderLifecycleStatus(workOrder)
   const cancelled = status === "CANCELLED"
   const closed = status === "CLOSED"
@@ -60,21 +54,21 @@ export function WorkOrderProgressStepper({ workOrder }: { workOrder: WorkOrder &
   const PendingIcon = STAGE_ICON[pending.stage]
 
   const pendingText = useMemo(() => {
-    if (closed) return "مكتمل — تمّ الإغلاق"
-    if (cancelled) return "أمر العمل ملغى"
+    if (closed) return t("pending.done")
+    if (cancelled) return t("step.cancelled")
     if (pending.userId) {
       const u = users.data?.find((x) => x.id === pending.userId)
       const name = u?.displayName || u?.email || pending.userId.slice(0, 6)
-      return `${pending.labelAr}: ${name}`
+      return `${t(pending.labelKey)}: ${name}`
     }
-    return pending.labelAr
-  }, [closed, cancelled, pending, users.data])
+    return t(pending.labelKey)
+  }, [closed, cancelled, pending, users.data, t])
 
   if (cancelled) {
     return (
       <Card className="border-destructive/40 shadow-sm print:hidden">
         <CardContent className="flex items-center gap-2 py-3 text-sm font-medium text-destructive">
-          <XCircle className="size-4" aria-hidden /> أمر العمل ملغى
+          <XCircle className="size-4" aria-hidden /> {t("step.cancelled")}
         </CardContent>
       </Card>
     )
@@ -95,18 +89,18 @@ export function WorkOrderProgressStepper({ workOrder }: { workOrder: WorkOrder &
             ].join(" ")}
           >
             <PendingIcon className="size-3.5" aria-hidden />
-            {closed ? "مكتمل" : "عالق عند"}
+            {closed ? t("step.done") : t("step.stuckAt")}
           </span>
           <span className="font-medium">{pendingText}</span>
         </div>
 
         <div className="flex items-center overflow-x-auto pb-1">
-          {STEPS.map((step, i) => {
+          {STEP_KEYS.map((stepKey, i) => {
             const done = closed || i < active
             const current = !closed && i === active
             const lineBefore = closed || i <= active
             return (
-              <Fragment key={step.key}>
+              <Fragment key={stepKey}>
                 {i > 0 ? (
                   <div
                     className={["h-0.5 min-w-6 flex-1", lineBefore ? "bg-primary" : "bg-border"].join(" ")}
@@ -132,7 +126,7 @@ export function WorkOrderProgressStepper({ workOrder }: { workOrder: WorkOrder &
                       done || current ? "font-medium text-foreground" : "text-muted-foreground",
                     ].join(" ")}
                   >
-                    {step.labelAr}
+                    {t(stepKey)}
                   </span>
                 </div>
               </Fragment>

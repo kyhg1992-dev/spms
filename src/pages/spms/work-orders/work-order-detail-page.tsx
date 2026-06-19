@@ -15,15 +15,17 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { useActivityLogsQuery, useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate, formatArDateTime } from "@/lib/format"
-import { workOrderPriorityAr, workOrderStatusAr } from "@/lib/labels-ar"
 import { buildWorkOrderTimeline } from "@/lib/work-order-timeline"
 import type { WorkOrder } from "@/models/firestore"
 import { updateWorkOrder } from "@/services/firestore/spms-service"
 
 export default function WorkOrderDetailPage() {
   const { workOrderId } = useParams<{ workOrderId: string }>()
+  const { t, lang } = useI18n()
+  const L = useLabels()
   const { data, isLoading } = useWorkOrdersQuery()
   const assets = useAssetsQuery()
   const activityLogs = useActivityLogsQuery()
@@ -50,12 +52,12 @@ export default function WorkOrderDetailPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>أمر عمل غير موجود</CardTitle>
-          <CardDescription>ربما تم حذف المعرف أو المسار خاطئ.</CardDescription>
+          <CardTitle>{t("wod.notFound")}</CardTitle>
+          <CardDescription>{t("wod.notFoundHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link to="/dashboard/work-orders">العودة لقائمة الأوامر</Link>
+            <Link to="/dashboard/work-orders">{t("wod.back")}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -67,26 +69,26 @@ export default function WorkOrderDetailPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground -ms-3 mb-1 px-2">
-            <Link to="/dashboard/work-orders">كل أوامر العمل</Link>
+            <Link to="/dashboard/work-orders">{t("wod.allWO")}</Link>
           </Button>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-bold text-2xl">{wo.title}</h1>
-            <Badge variant="outline">{workOrderStatusAr[String(wo.status)] ?? wo.status}</Badge>
-            <Badge variant="secondary">{workOrderPriorityAr[wo.priority] ?? wo.priority}</Badge>
+            <Badge variant="outline">{L.woStatus(String(wo.status))}</Badge>
+            <Badge variant="secondary">{L.priority(wo.priority)}</Badge>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">{assetName ?? wo.assetId}</p>
         </div>
         <Button asChild variant="outline" size="sm" className="gap-2 print:hidden">
           <Link to={`/print/work-order/${wo.id}`} target="_blank" rel="noreferrer">
             <Printer className="size-4" />
-            كرت أمر العمل
+            {t("wod.card")}
           </Link>
         </Button>
       </div>
 
       <WorkOrderProgressStepper workOrder={wo} />
 
-      <WorkOrderOperationalActions workOrder={wo} />
+      <WorkOrderOperationalActions workOrder={wo} language={lang} dir={lang === "ar" ? "rtl" : "ltr"} />
 
       <RequestRefCard workOrder={wo} />
 
@@ -95,54 +97,54 @@ export default function WorkOrderDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-xl border-border/70 shadow-md">
           <CardHeader>
-            <CardTitle>التواريخ التشغيلية</CardTitle>
-            <CardDescription>تسجيل أمر العمل وآخر تحديث ومواعيد الإغلاق.</CardDescription>
+            <CardTitle>{t("wod.dates")}</CardTitle>
+            <CardDescription>{t("wod.datesHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-relaxed">
-            <TimelineRow title="التسجيل" value={formatArDateTime(wo.createdAt)} />
-            <TimelineRow title="آخر تحديث" value={formatArDateTime(wo.updatedAt)} />
-            <TimelineRow title="متوقّع الإغلاق" value={formatArDate(wo.dueDate)} />
-            <TimelineRow title="الإغلاق الفعلي" value={wo.closedAt ? formatArDateTime(wo.closedAt) : "—"} />
+            <TimelineRow title={t("wod.created")} value={formatArDateTime(wo.createdAt)} />
+            <TimelineRow title={t("wod.lastUpdate")} value={formatArDateTime(wo.updatedAt)} />
+            <TimelineRow title={t("wod.dueExpected")} value={formatArDate(wo.dueDate)} />
+            <TimelineRow title={t("wod.closedActual")} value={wo.closedAt ? formatArDateTime(wo.closedAt) : "—"} />
           </CardContent>
         </Card>
 
         <Card className="rounded-xl border-border/70 shadow-md">
           <CardHeader>
-            <CardTitle>القياسات التشغيلية</CardTitle>
-            <CardDescription>مدة التنفيذ المحسوبة وحالة الاعتماد.</CardDescription>
+            <CardTitle>{t("wod.measures")}</CardTitle>
+            <CardDescription>{t("wod.measuresHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <KV
-              k="مدة التنفيذ (ساعات)"
+              k={t("wod.execDuration")}
               v={
                 (wo.actualLaborHours ?? wo.laborHours) !== undefined
                   ? String(wo.actualLaborHours ?? wo.laborHours)
                   : "—"
               }
             />
-            <KV k="مطلوب اعتماد" v={wo.approvalRequired ? "نعم" : "لا"} />
+            <KV k={t("wod.approvalRequired")} v={wo.approvalRequired ? t("common.yes") : t("common.no")} />
           </CardContent>
         </Card>
       </div>
 
       <Card className="rounded-xl border-border/70 shadow-md">
         <CardHeader>
-          <CardTitle>وصف مهمة تنفيذية</CardTitle>
+          <CardTitle>{t("wod.taskDesc")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <p className="whitespace-pre-wrap leading-relaxed">{wo.description}</p>
           <Separator />
           <div>
-            <p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">ملاحظات داخلية</p>
-            <p className="whitespace-pre-wrap">{wo.internalNotes ?? "لا توجد ملاحظات داخلية."}</p>
+            <p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">{t("wod.internalNotes")}</p>
+            <p className="whitespace-pre-wrap">{wo.internalNotes ?? t("wod.noInternalNotes")}</p>
           </div>
         </CardContent>
       </Card>
 
       <Card className="rounded-xl border-border/70 shadow-md">
         <CardHeader>
-          <CardTitle>سجل الحركة التشغيلي</CardTitle>
-          <CardDescription>ملخص قابل لإعادة الاستخدام لحالة الأمر، التنفيذ، التفويض، الاعتماد، والأثر التدقيقي.</CardDescription>
+          <CardTitle>{t("wod.activityLog")}</CardTitle>
+          <CardDescription>{t("wod.activityHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <WorkOrderTimeline entries={timelineEntries} />
@@ -154,6 +156,7 @@ export default function WorkOrderDetailPage() {
 
 function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }) {
   const { spmsRole } = useAuth()
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const canEdit = spmsRole === "admin" || spmsRole === "manager"
   const [value, setValue] = useState(workOrder.externalRequestNo ?? "")
@@ -172,7 +175,7 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
         toast.error(res.error)
         return
       }
-      toast.success("تم حفظ رقم الطلب المرجعي")
+      toast.success(t("wod.requestSaved"))
       await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
     } finally {
       setBusy(false)
@@ -182,14 +185,14 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
   return (
     <Card className="rounded-xl border-border/70 shadow-sm print:hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">رقم الطلب المرجعي (النظام الأساسي)</CardTitle>
-        <CardDescription>اربط أمر العمل بالطلب المفتوح في النظام الأساسي (الكام سيستم).</CardDescription>
+        <CardTitle className="text-base">{t("wod.requestRef")}</CardTitle>
+        <CardDescription>{t("wod.requestRefHint")}</CardDescription>
       </CardHeader>
       <CardContent className="flex items-end gap-2">
         <div className="flex-1 space-y-1.5">
           <Input
             dir="ltr"
-            placeholder="مثل: REQ-2026-014532"
+            placeholder="REQ-2026-014532"
             value={value}
             disabled={!canEdit || busy}
             onChange={(e) => setValue(e.target.value)}
@@ -197,7 +200,7 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
         </div>
         {canEdit ? (
           <Button type="button" disabled={!dirty || busy} onClick={() => void save()}>
-            <Save className="size-4" /> حفظ
+            <Save className="size-4" /> {t("common.save")}
           </Button>
         ) : null}
       </CardContent>

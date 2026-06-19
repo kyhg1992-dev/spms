@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
+import { useI18n } from "@/i18n/i18n"
 import { resetOperationalData } from "@/services/firestore/admin-reset-service"
 
 const CONFIRM_WORD = "تصفير"
@@ -15,6 +16,7 @@ const CONFIRM_WORD = "تصفير"
 /** Admin-only destructive reset of operational data for a clean test run. */
 export function DangerZone() {
   const { spmsRole } = useAuth()
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [confirm, setConfirm] = useState("")
   const [busy, setBusy] = useState(false)
@@ -44,19 +46,14 @@ export function DangerZone() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-destructive">
           <AlertTriangle className="size-5" aria-hidden />
-          منطقة الخطر — تصفير بيانات التجربة
+          {t("set.dangerTitle")}
         </CardTitle>
-        <CardDescription>
-          يحذف <b>كل أوامر العمل والقراءات والإشعارات</b> ويعيد ضبط مؤشّر الصيانة (آخر خدمة) لكل أصل،
-          لبدء تجربة بسجل نظيف. تبقى الأصول والقوالب والمستخدمون وقيم العدّادات كما هي.
-          <br />
-          <b>لا يمكن التراجع عن هذه العملية.</b>
-        </CardDescription>
+        <CardDescription>{t("set.dangerDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="confirm-reset" className="text-xs">
-            اكتب «{CONFIRM_WORD}» للتأكيد
+            {t("set.dangerConfirm")}
           </Label>
           <Input
             id="confirm-reset"
@@ -71,7 +68,7 @@ export function DangerZone() {
           disabled={confirm.trim() !== CONFIRM_WORD || busy}
           onClick={() => void run()}
         >
-          {busy ? "جارٍ التصفير…" : "تصفير بيانات التجربة الآن"}
+          {busy ? t("set.resetting") : t("set.dangerButton")}
         </Button>
       </CardContent>
     </Card>

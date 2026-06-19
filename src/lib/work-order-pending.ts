@@ -9,6 +9,8 @@ export type PendingOwner = {
   userId?: string
   /** Arabic description of where the request is stuck. */
   labelAr: string
+  /** i18n key for the label (use with t()). */
+  labelKey: string
 }
 
 /**
@@ -27,21 +29,18 @@ export function workOrderPendingOwner(wo: Pick<
   const assignee = wo.assignedTo ?? wo.assigneeId
 
   if (status === "CLOSED" || status === "CANCELLED") {
-    return { stage: "done", labelAr: "مكتمل — لا شيء معلّق" }
+    return { stage: "done", labelAr: "مكتمل — لا شيء معلّق", labelKey: "pending.done" }
   }
   if (status === "WAITING_APPROVAL" || status === "COMPLETED") {
-    return { stage: "approval", labelAr: "بانتظار اعتماد المدير" }
+    return { stage: "approval", labelAr: "بانتظار اعتماد المدير", labelKey: "pending.approval" }
   }
   if (status === "WAITING_PARTS") {
     return assignee
-      ? { stage: "technician", userId: assignee, labelAr: "عند الفنّي (بانتظار قطع غيار)" }
-      : { stage: "approval", labelAr: "بانتظار قطع الغيار" }
-  }
-  if (assignee && (status === "ASSIGNED" || status === "IN_PROGRESS")) {
-    return { stage: "technician", userId: assignee, labelAr: "عند الفنّي المُسنَد" }
+      ? { stage: "technician", userId: assignee, labelAr: "عند الفنّي (بانتظار قطع غيار)", labelKey: "pending.waitingPartsTech" }
+      : { stage: "approval", labelAr: "بانتظار قطع الغيار", labelKey: "pending.waitingParts" }
   }
   if (assignee) {
-    return { stage: "technician", userId: assignee, labelAr: "عند الفنّي المُسنَد" }
+    return { stage: "technician", userId: assignee, labelAr: "عند الفنّي المُسنَد", labelKey: "pending.technician" }
   }
-  return { stage: "assign", labelAr: "بانتظار الإسناد من المدير" }
+  return { stage: "assign", labelAr: "بانتظار الإسناد من المدير", labelKey: "pending.assign" }
 }

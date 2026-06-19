@@ -2,6 +2,7 @@ import { CheckCircle2, Clock, UserCheck, UserCog } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { useUsersQuery } from "@/hooks/use-spms-data"
+import { useI18n } from "@/i18n/i18n"
 import { workOrderPendingOwner, type PendingStage } from "@/lib/work-order-pending"
 import type { WorkOrder } from "@/models/firestore"
 
@@ -24,14 +25,15 @@ export function WorkOrderPendingBadge({
   className?: string
 }) {
   const users = useUsersQuery()
+  const { t } = useI18n()
   const pending = workOrderPendingOwner(workOrder)
   const Icon = STAGE_ICON[pending.stage]
 
-  let label = pending.labelAr
+  let label = t(pending.labelKey)
   if (pending.userId) {
     const u = users.data?.find((x) => x.id === pending.userId)
     const name = u?.displayName || u?.email || pending.userId.slice(0, 6)
-    label = `${pending.labelAr}: ${name}`
+    label = `${t(pending.labelKey)}: ${name}`
   }
 
   const variant =

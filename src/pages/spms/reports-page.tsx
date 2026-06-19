@@ -18,13 +18,15 @@ import {
   usePMSchedulesQuery,
   useWorkOrdersQuery,
 } from "@/hooks/use-spms-data"
+import { useI18n, useLabels } from "@/i18n/i18n"
 import { calculateMaintenanceKpis } from "@/lib/kpi-engine"
-import { workOrderStatusAr } from "@/lib/labels-ar"
 import { prepareReport, toExcelReadyReport, toPdfReadyReport } from "@/lib/report-export"
 import { countBy, filterReportingDataset } from "@/lib/reporting-query"
 import { exportRowsToExcel, fileDateStamp } from "@/lib/xlsx-export"
 
 export default function ReportsPage() {
+  const { t } = useI18n()
+  const L = useLabels()
   const assets = useAssetsQuery()
   const wos = useWorkOrdersQuery()
   const pm = usePMSchedulesQuery()
@@ -50,7 +52,7 @@ export default function ReportsPage() {
       { key: "count", label: "العدد" },
     ],
     rows: countBy(filtered.workOrders, (workOrder) => String(workOrder.status)).map((row) => ({
-      status: workOrderStatusAr[row.key] ?? row.key,
+      status: L.woStatus(row.key),
       count: row.count,
     })),
   })
@@ -92,7 +94,7 @@ export default function ReportsPage() {
         "رقم الأصل": nameAsset.get(w.assetId) ?? "",
         "المستوى": w.serviceLevelCode ?? "",
         "الأولوية": w.priority,
-        "الحالة": workOrderStatusAr[String(w.status)] ?? String(w.status),
+        "الحالة": L.woStatus(String(w.status)),
         "رقم الطلب": w.externalRequestNo ?? "",
       })),
       "Work Orders"
@@ -117,9 +119,9 @@ export default function ReportsPage() {
   }
 
   const rows = [
-    { name: "تقرير الأصول", hint: `${(assets.data ?? []).length.toLocaleString("en-US")} أصل`, done: !!assets.data, action: exportAssets },
-    { name: "تقرير الصيانة الوقائية PM", hint: `${(pm.data ?? []).length.toLocaleString("en-US")} مخطط`, done: !!pm.data, action: exportPm },
-    { name: "تقرير أوامر العمل WO", hint: `${(wos.data ?? []).length.toLocaleString("en-US")} أمر`, done: !!wos.data, action: exportWorkOrders },
+    { name: t("rep.assetsReport"), hint: `${(assets.data ?? []).length.toLocaleString("en-US")} ${t("rep.assetCount")}`, done: !!assets.data, action: exportAssets },
+    { name: t("rep.pmReport"), hint: `${(pm.data ?? []).length.toLocaleString("en-US")} ${t("rep.pmCount")}`, done: !!pm.data, action: exportPm },
+    { name: t("rep.woReport"), hint: `${(wos.data ?? []).length.toLocaleString("en-US")} ${t("rep.woCount")}`, done: !!wos.data, action: exportWorkOrders },
   ]
 
   function distributionRows(): [string, number][] {
@@ -137,13 +139,11 @@ export default function ReportsPage() {
           />
         ) : null}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">التقارير والاستخبارات</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("rep.title")}</h1>
           {company.data?.companyNameAr ? (
             <p className="text-muted-foreground mt-1 text-sm font-medium">{company.data.companyNameAr}</p>
           ) : null}
-          <p className="text-muted-foreground mt-2 max-w-3xl text-sm">
-            أساس تشغيلي لحساب مؤشرات الصيانة وتجهيز البيانات للتصدير، مع إبقاء التحليلات خفيفة وقابلة للتوسع.
-          </p>
+          <p className="text-muted-foreground mt-2 max-w-3xl text-sm">{t("rep.subtitle")}</p>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function ReportsPage() {
             <CardContent>
               <Button size="sm" variant="outline" disabled={!r.done} onClick={r.action}>
                 <Download className="size-4" />
-                تصدير Excel
+                {t("rep.exportExcel")}
               </Button>
             </CardContent>
           </Card>
@@ -166,7 +166,7 @@ export default function ReportsPage() {
 
       <Card className="rounded-xl border-border/70">
         <CardHeader>
-          <CardTitle>مؤشرات تشغيلية جاهزة للتصدير</CardTitle>
+          <CardTitle>{t("rep.kpisTitle")}</CardTitle>
           <CardDescription>
             CSV / PDF / Excel data shapes are prepared from the same reporting foundation.
           </CardDescription>
@@ -183,23 +183,23 @@ export default function ReportsPage() {
 
       <Card className="rounded-xl border-border/70 shadow-md">
         <CardHeader>
-          <CardTitle>ملخص فوري — حالة أوامر العمل</CardTitle>
-          <CardDescription>بيانات مباشرة قابلة للتصدير والتحليل التشغيلي.</CardDescription>
+          <CardTitle>{t("rep.woSummary")}</CardTitle>
+          <CardDescription>{t("rep.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Separator className="mb-4" />
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الحالة العربية المعروضة للإدارات</TableHead>
-                <TableHead className="text-end tabular-nums">العداد</TableHead>
+                <TableHead>{t("rep.statusCol")}</TableHead>
+                <TableHead className="text-end tabular-nums">{t("rep.count")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {distributionRows().length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={2} className="text-muted-foreground text-center text-sm">
-                    لا بيانات
+                    {t("rep.noData")}
                   </TableCell>
                 </TableRow>
               ) : (
