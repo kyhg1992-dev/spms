@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts"
 
+import { AnnouncementsCard } from "@/components/dashboard/announcements-card"
 import { LiveClock } from "@/components/dashboard/live-clock"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ import {
   usePMSchedulesQuery,
   useWorkOrdersQuery,
 } from "@/hooks/use-spms-data"
+import { useI18n } from "@/i18n/i18n"
 import { computeDashboardKpis } from "@/lib/dashboard-metrics"
 import { formatArDateTime } from "@/lib/format"
 import { parseLocationAliases, resolveSite } from "@/lib/saudi-locations"
@@ -64,6 +66,7 @@ function formatHours(n: number | null) {
 }
 
 export default function DashboardHomePage() {
+  const { t } = useI18n()
   const assets = useAssetsQuery()
   const workOrders = useWorkOrdersQuery()
   const pm = usePMSchedulesQuery()
@@ -174,7 +177,7 @@ export default function DashboardHomePage() {
     assets.error || workOrders.error || pm.error || notifications.error ? (
       <Card className="border-destructive/50 bg-destructive/5">
         <CardContent className="text-destructive py-4 text-sm">
-          تعذّر مزامنة جزء من الواجهات التشغيلية. راجع الاتصال وتكوين Firebase.
+          {t("dash.syncError")}
         </CardContent>
       </Card>
     ) : null
@@ -184,14 +187,13 @@ export default function DashboardHomePage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge variant="outline" className="mb-3 border-border/80">
-            منصّة المؤسسة
+            {t("dash.badge")}
           </Badge>
           <h1 className="from-foreground bg-gradient-to-bl to-sky-900/40 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:to-sky-200/50 md:text-4xl">
-            لوحة قيادة للصيانة الوقائية الذكية
+            {t("dash.title")}
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">
-            مؤشرات حيّة مستمدة من قواعد Firestore فورية لتتبّع الأصول الثقيلة، حركة الفرق الصيانية، والامتثال
-            للصيانة الدورية وفق أسلوب المنشآت العالمية.
+            {t("dash.subtitle")}
           </p>
         </div>
         <div className="flex flex-col items-stretch gap-3 sm:items-end">
@@ -199,11 +201,11 @@ export default function DashboardHomePage() {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" asChild>
               <Link to="/dashboard/work-orders">
-                إنشاء أمر عمل سريع <ArrowUpRight className="size-4" aria-hidden />
+                {t("dash.quickWO")} <ArrowUpRight className="size-4" aria-hidden />
               </Link>
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <Link to="/dashboard/pm">جدول صيانة دورية</Link>
+              <Link to="/dashboard/pm">{t("dash.quickPM")}</Link>
             </Button>
           </div>
         </div>
@@ -213,29 +215,29 @@ export default function DashboardHomePage() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiTile
-          title="صافي التوفر التقريبي"
+          title={t("dash.kpi.availability")}
           value={kpis.availabilityPct !== null ? `${kpis.availabilityPct}%` : "—"}
-          hint="نِسَب أسطول نشط غير في حالة صيانة"
+          hint={t("dash.kpi.availabilityHint")}
           icon={<Gauge className="size-4" />}
         />
         <KpiTile
-          title="MTBF تشغيلي"
+          title={t("dash.kpi.mtbf")}
           value={formatHours(kpis.mtbfHours)}
-          hint="ساعات تشغيل مجمّعة / عدد الحوادث النموذجية"
+          hint={t("dash.kpi.mtbfHint")}
           icon={<Timer className="size-4" />}
         />
         <KpiTile
-          title="MTTR إصلاحات"
+          title={t("dash.kpi.mttr")}
           value={formatHours(kpis.mttrHours)}
-          hint="متوسط زمن إغلاق أوامر العمل المكتملة"
+          hint={t("dash.kpi.mttrHint")}
           icon={<Wrench className="size-4" />}
         />
-        <KpiTile title="أوامر عمل نشطة" value={String(kpis.activeWorkOrders)} hint="جميع الحالات التنفيذية" />
-        <KpiTile title="PM متأخر" value={String(kpis.delayedPm)} hint="خطط فعّالة متجاوزة للموعد" />
-        <KpiTile title="الأسطول المملوك" value={String(kpis.assetFleetSize)} hint="أصول غير متوقفة" />
-        <KpiTile title="تنبيهات غير مقروءة" value={String(kpis.unreadAlerts)} hint="في مركز الإشعارات" />
-        <KpiTile title="إجمالي الأصول" value={String(fleetStats.count)} hint="كل الأصول المسجّلة" icon={<Boxes className="size-4" />} />
-        <KpiTile title="عدد المواقع" value={String(fleetStats.locations)} hint="مواقع ميدانية مميّزة" icon={<MapPin className="size-4" />} />
+        <KpiTile title={t("dash.kpi.activeWO")} value={String(kpis.activeWorkOrders)} hint={t("dash.kpi.activeWOHint")} />
+        <KpiTile title={t("dash.kpi.delayedPm")} value={String(kpis.delayedPm)} hint={t("dash.kpi.delayedPmHint")} />
+        <KpiTile title={t("dash.kpi.fleet")} value={String(kpis.assetFleetSize)} hint={t("dash.kpi.fleetHint")} />
+        <KpiTile title={t("dash.kpi.unread")} value={String(kpis.unreadAlerts)} hint={t("dash.kpi.unreadHint")} />
+        <KpiTile title={t("dash.kpi.totalAssets")} value={String(fleetStats.count)} hint={t("dash.kpi.totalAssetsHint")} icon={<Boxes className="size-4" />} />
+        <KpiTile title={t("dash.kpi.locations")} value={String(fleetStats.locations)} hint={t("dash.kpi.locationsHint")} icon={<MapPin className="size-4" />} />
       </section>
 
       <section>
@@ -243,7 +245,7 @@ export default function DashboardHomePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MapPin className="size-4" aria-hidden />
-              خريطة الأسطول
+              {t("dash.fleetMap")}
             </CardTitle>
             <CardDescription>
               {fleetStats.located.length} أصل موزّع على المواقع المعروفة من {fleetStats.count}.
@@ -263,12 +265,16 @@ export default function DashboardHomePage() {
         </Card>
       </section>
 
+      <section>
+        <AnnouncementsCard />
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-[1.1fr_min(100%,360px)]">
         <Card className="overflow-hidden rounded-xl border border-border/80 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Warehouse className="size-4" aria-hidden />
-              أحمال الفنيين (أوامر مفتوحة)
+              {t("dash.workload")}
             </CardTitle>
             <CardDescription>بالاعتماد على حقل الإسناد في كل أمر عمل لم يُغلق بعد.</CardDescription>
           </CardHeader>
@@ -302,7 +308,7 @@ export default function DashboardHomePage() {
 
         <Card className="overflow-hidden rounded-xl border border-border/80 shadow-md">
           <CardHeader>
-            <CardTitle className="text-base">صيانة وقائية قادمة</CardTitle>
+            <CardTitle className="text-base">{t("dash.upcomingPm")}</CardTitle>
             <CardDescription>أقرب خمسة مواعيد لمخططات نشطة.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -329,8 +335,8 @@ export default function DashboardHomePage() {
       <section className="grid gap-6 lg:grid-cols-2">
         <Card className="min-h-[340px] rounded-xl border border-border/80 shadow-md">
           <CardHeader>
-            <CardTitle>حالات أوامر العمل</CardTitle>
-            <CardDescription>تفكيك فوري لمخزون التنفيذ — دعم مخطط SAP/Maximo.</CardDescription>
+            <CardTitle>{t("dash.woStates")}</CardTitle>
+            <CardDescription>تفكيك فوري لمخزون التنفيذ.</CardDescription>
           </CardHeader>
           <CardContent className="h-[260px]">
             {woPieData.length === 0 ? (
@@ -352,7 +358,7 @@ export default function DashboardHomePage() {
 
         <Card className="min-h-[340px] rounded-xl border border-border/80 shadow-md">
           <CardHeader>
-            <CardTitle>التزام الصيانة الوقائية</CardTitle>
+            <CardTitle>{t("dash.pmCompliance")}</CardTitle>
             <CardDescription>متابعة التأخيرات والجداول المتوقفة.</CardDescription>
           </CardHeader>
           <CardContent className="h-[260px]">

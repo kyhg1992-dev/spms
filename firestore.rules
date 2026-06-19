@@ -284,5 +284,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && managerRole();
     }
+
+    match /announcements/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && managerRole();
+    }
   }
 }

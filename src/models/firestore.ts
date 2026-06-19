@@ -399,6 +399,16 @@ export type CompanySettings = BaseDoc & {
   workshopOperatingHours?: { start: string; end: string }
 }
 
+export type AnnouncementPriority = "normal" | "important" | "urgent"
+
+/** A team announcement / bulletin shown on the dashboard. Posted by managers/admins. */
+export type Announcement = BaseDoc & {
+  title: string
+  body: string
+  priority: AnnouncementPriority
+  createdByUid: string
+}
+
 export type SpmsCollectionMap = {
   users: SpmsUser
   assets: Asset
