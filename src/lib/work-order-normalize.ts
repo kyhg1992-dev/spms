@@ -279,6 +279,7 @@ export function normalizeWorkOrder(docId: string, data: DocumentData): WorkOrder
         : undefined,
     sourceRef: typeof d.sourceRef === "string" ? d.sourceRef : undefined,
     externalRequestNo: typeof d.externalRequestNo === "string" ? d.externalRequestNo : undefined,
+    requestNoBypassed: typeof d.requestNoBypassed === "boolean" ? d.requestNoBypassed : undefined,
     serviceLevelCode:
       typeof d.serviceLevelCode === "string" && /^[A-Z]$/.test(d.serviceLevelCode)
         ? (d.serviceLevelCode as WorkOrder["serviceLevelCode"])

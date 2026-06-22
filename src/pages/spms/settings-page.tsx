@@ -29,6 +29,7 @@ const schema = z.object({
   defaultPmReminderDays: finiteNum("تذكير PM").min(0).max(90),
   meterAnomalyPct: finiteNum("عتبة الشذوذ").min(0).max(100),
   locationAliases: z.string().max(8000).optional(),
+  requestBypassCode: z.string().trim().max(40).optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -47,6 +48,7 @@ export default function SettingsPage() {
       defaultPmReminderDays: 7,
       meterAnomalyPct: 30,
       locationAliases: "",
+      requestBypassCode: "",
     },
   })
 
@@ -60,6 +62,7 @@ export default function SettingsPage() {
       defaultPmReminderDays: d.defaultPmReminderDays ?? 7,
       meterAnomalyPct: d.meterAnomalyPct ?? 30,
       locationAliases: d.locationAliases ?? "",
+      requestBypassCode: d.requestBypassCode ?? "",
     })
   }, [q.data, form])
 
@@ -193,6 +196,12 @@ export default function SettingsPage() {
                   {...form.register("locationAliases")}
                 />
                 <p className="text-muted-foreground text-xs leading-relaxed">{t("set.aliasesHint")}</p>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label htmlFor="requestBypassCode">{t("set.bypassCode")}</Label>
+                <Input id="requestBypassCode" dir="ltr" className="max-w-xs font-mono" placeholder="202520262027" {...form.register("requestBypassCode")} />
+                <p className="text-muted-foreground text-xs leading-relaxed">{t("set.bypassCodeHint")}</p>
               </div>
               <RoleGate roles={["admin", "manager"]}>
                 <Button type="submit">{t("common.save")}</Button>

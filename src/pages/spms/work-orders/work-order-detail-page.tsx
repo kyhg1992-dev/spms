@@ -18,10 +18,11 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
 import { useI18n, useLabels } from "@/i18n/i18n"
-import { useActivityLogsQuery, useAssetsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
+import { useActivityLogsQuery, useAssetsQuery, useCompanySettingsQuery, useWorkOrdersQuery } from "@/hooks/use-spms-data"
 import { formatArDate, formatArDateTime, formatDuration } from "@/lib/format"
 import { buildWorkOrderTimeline } from "@/lib/work-order-timeline"
 import type { WorkOrder } from "@/models/firestore"
+import { isBypassCode } from "@/lib/request-bypass"
 import { updateWorkOrder } from "@/services/firestore/spms-service"
 import { requestNoTaken } from "@/services/firestore/work-order-request-no"
 
@@ -171,6 +172,7 @@ export default function WorkOrderDetailPage() {
 function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }) {
   const { spmsRole } = useAuth()
   const { t } = useI18n()
+  const company = useCompanySettingsQuery()
   const queryClient = useQueryClient()
   const canEdit = spmsRole === "admin" || spmsRole === "manager"
   const [value, setValue] = useState(workOrder.externalRequestNo ?? "")
@@ -182,12 +184,23 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
     if (!spmsRole) return
     setBusy(true)
     try {
+      if (isBypassCode(value, company.data)) {
+        const res = await updateWorkOrder(spmsRole, workOrder.id, {
+          requestNoBypassed: true,
+          externalRequestNo: undefined,
+        })
+        if (res.error) { toast.error(res.error); return }
+        toast.success(t("reqp.bypassed"))
+        await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
+        return
+      }
       if (value.trim() && (await requestNoTaken(value, workOrder.id))) {
         toast.error(t("reqp.duplicate"))
         return
       }
       const res = await updateWorkOrder(spmsRole, workOrder.id, {
         externalRequestNo: value.trim() || undefined,
+        requestNoBypassed: false,
       })
       if (res.error) {
         toast.error(res.error)
@@ -203,7 +216,12 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
   return (
     <Card className="rounded-xl border-border/70 shadow-sm print:hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{t("wod.requestRef")}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          {t("wod.requestRef")}
+          {workOrder.requestNoBypassed && !workOrder.externalRequestNo?.trim() ? (
+            <Badge variant="secondary" className="bg-amber-100 text-amber-700">{t("wo.requestPending")}</Badge>
+          ) : null}
+        </CardTitle>
         <CardDescription>{t("wod.requestRefHint")}</CardDescription>
       </CardHeader>
       <CardContent className="flex items-end gap-2">

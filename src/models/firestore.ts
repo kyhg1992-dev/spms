@@ -232,6 +232,8 @@ export type WorkOrder = BaseDoc & {
   sourceRef?: string
   /** Reference number of the originating request in the main/legacy system (CAM). */
   externalRequestNo?: string
+  /** True when the CAM request number was intentionally bypassed (to be entered later). */
+  requestNoBypassed?: boolean
   /** Service level (A/B/C/D) this PM work order performs, from the maintenance template. */
   serviceLevelCode?: MaintenanceServiceCode
   serviceLevelNameAr?: string
@@ -401,6 +403,8 @@ export type CompanySettings = BaseDoc & {
   logoDataUrl?: string
   /** Site-code → city aliases for the fleet map, one per line: "VMM101=الرياض". */
   locationAliases?: string
+  /** Special code that bypasses the CAM request number (entered later). */
+  requestBypassCode?: string
   defaultPmReminderDays?: number
   meterAnomalyPct?: number
   maintenanceAnnualBudget?: number

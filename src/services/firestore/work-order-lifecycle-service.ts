@@ -224,9 +224,10 @@ export async function transitionWorkOrderLifecycle(input: TransitionInput): Prom
       approvalRequired: input.approvalRequired,
     })
 
-    // The originating request number (CAM) is mandatory before fully closing.
-    if (input.targetStatus === "CLOSED" && !workOrder.externalRequestNo?.trim()) {
-      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) قبل الإغلاق النهائي")
+    // The originating request number (CAM) is mandatory before fully closing —
+    // unless it was explicitly bypassed (to be entered later).
+    if (input.targetStatus === "CLOSED" && !workOrder.externalRequestNo?.trim() && !workOrder.requestNoBypassed) {
+      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) أو شفرة التجاوز قبل الإغلاق")
     }
 
     const batch = writeBatch(db)
@@ -444,9 +445,10 @@ export async function finalizeWorkOrderLifecycle(input: ClosureInput): Promise<A
     if (current !== "WAITING_APPROVAL" && current !== "COMPLETED") {
       return errorState<LifecycleResult>("لا يمكن الاعتماد قبل إنهاء التنفيذ")
     }
-    // The originating request number (CAM) is mandatory before fully closing.
-    if (!workOrder.externalRequestNo?.trim()) {
-      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) قبل الاعتماد والإغلاق النهائي")
+    // The originating request number (CAM) is mandatory before fully closing —
+    // unless it was explicitly bypassed (to be entered later).
+    if (!workOrder.externalRequestNo?.trim() && !workOrder.requestNoBypassed) {
+      return errorState<LifecycleResult>("أدخل رقم الطلب (الكام) أو شفرة التجاوز قبل الاعتماد والإغلاق")
     }
 
     const batch = writeBatch(db)

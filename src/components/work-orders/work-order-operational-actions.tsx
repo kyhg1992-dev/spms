@@ -123,7 +123,7 @@ export function WorkOrderOperationalActions({
   const hasAuth = !!spmsRole && !!user?.uid
   const manager = canManage(spmsRole)
   const hasAssignee = !!(workOrder.assignedTo?.trim() || workOrder.assigneeId?.trim())
-  const hasRequestNo = !!workOrder.externalRequestNo?.trim()
+  const hasRequestNo = !!workOrder.externalRequestNo?.trim() || !!workOrder.requestNoBypassed
   const readyToFinalize = manager && (lifecycleStatus === "WAITING_APPROVAL" || lifecycleStatus === "COMPLETED")
   const canFinalize = readyToFinalize && hasRequestNo
   const canReject = manager && lifecycleStatus === "WAITING_APPROVAL"
