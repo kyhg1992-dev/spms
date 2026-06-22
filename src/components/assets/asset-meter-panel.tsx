@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/contexts/auth-context"
-import { useMeterReadingsQuery } from "@/hooks/use-spms-data"
+import { useMeterReadingsQuery, useUsersQuery } from "@/hooks/use-spms-data"
 import { formatArDateTime } from "@/lib/format"
 import type { MeterReadingKind } from "@/models/firestore"
 import { createMeterReadingWithPMEngine, deleteMeterReading } from "@/services/firestore/spms-service"
@@ -40,6 +40,12 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
   const { spmsRole, user } = useAuth()
   const qc = useQueryClient()
   const readings = useMeterReadingsQuery(assetId)
+  const users = useUsersQuery()
+  const nameOf = (uid?: string) => {
+    if (!uid) return "—"
+    const u = users.data?.find((x) => x.id === uid)
+    return u?.displayName || u?.email || uid.slice(0, 6)
+  }
   const [kind, setKind] = useState<MeterReadingKind>("operating_hours")
   const [value, setValue] = useState<number>(0)
   const [note, setNote] = useState("")
@@ -187,13 +193,14 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                     <TableHead>القيمة</TableHead>
                     <TableHead>الفرق عن السابق</TableHead>
                     <TableHead>الوقت</TableHead>
+                    <TableHead>بواسطة</TableHead>
                     {isAdmin ? <TableHead className="w-10" /> : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(readings.data ?? []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 5 : 4} className="text-muted-foreground text-center">
+                      <TableCell colSpan={isAdmin ? 6 : 5} className="text-muted-foreground text-center">
                         لم تُدرج أي قراءات بعد.
                       </TableCell>
                     </TableRow>
@@ -204,6 +211,7 @@ export function AssetMeterPanel({ assetId }: { assetId: string }) {
                         <TableCell className="tabular-nums">{r.value.toLocaleString("en-US")}</TableCell>
                         <TableCell className="tabular-nums">{r.deltaFromPrevious ?? "—"}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{formatArDateTime(r.updatedAt)}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{nameOf(r.enteredByUid)}</TableCell>
                         {isAdmin ? (
                           <TableCell>
                             <Button
