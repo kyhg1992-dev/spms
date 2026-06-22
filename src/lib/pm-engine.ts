@@ -194,6 +194,9 @@ export function detectMeterAnomaly(input: {
   previousValue?: number
   nextValue: number
   thresholdPct?: number
+  /** Absolute max increase allowed in a single reading (per kind). Above it the
+   * reading is treated as a hard error (typo), not just a soft anomaly flag. */
+  hardMaxDelta?: number
 }): MeterAnomalyResult {
   const thresholdPct = input.thresholdPct ?? 30
   if (typeof input.previousValue !== "number") {
@@ -205,6 +208,15 @@ export function detectMeterAnomaly(input: {
     return {
       anomalyFlag: true,
       reason: "METER_ROLLBACK",
+      deltaFromPrevious,
+      thresholdPct,
+    }
+  }
+
+  if (typeof input.hardMaxDelta === "number" && deltaFromPrevious > input.hardMaxDelta) {
+    return {
+      anomalyFlag: true,
+      reason: "DELTA_TOO_LARGE",
       deltaFromPrevious,
       thresholdPct,
     }

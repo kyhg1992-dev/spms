@@ -34,6 +34,7 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "meter.saveAll": { ar: "حفظ الكل", en: "Save all" },
   "meter.bulkHint": { ar: "أدخل القراءة لكل مركبة ثم احفظ الكل.", en: "Enter a reading per vehicle, then save all." },
   "meter.savedN": { ar: "تم تحديث {n} مركبة", en: "{n} vehicles updated" },
+  "meter.bulkRejected": { ar: "رُفضت {n} قراءة (أقل من الحالية أو قفزة كبيرة)", en: "{n} readings rejected (lower than current or too large a jump)" },
   "meter.searchAny": { ar: "بحث: رقم الأصل، اللوحة، الاسم، الفرع، الموقع…", en: "Search: asset no., plate, name, branch, location…" },
   "meter.by": { ar: "بواسطة", en: "By" },
   "nav.pm": { ar: "صيانة وقائية", en: "Preventive" },

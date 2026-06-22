@@ -85,14 +85,18 @@ export default function MeterUpdatePage() {
     if (entries.length === 0) return toast.error(t("meter.invalid"))
     setBusy(true)
     let ok = 0
+    const failed: string[] = []
     try {
       for (const e of entries) {
         const res = await createMeterReadingWithPMEngine(spmsRole, { assetId: e.id, kind, value: e.num, enteredByUid: user.uid })
-        if (!res.error) ok += 1
+        if (res.error) failed.push(e.id)
+        else ok += 1
       }
       await queryClient.invalidateQueries({ queryKey: ["assets"] })
-      toast.success(t("meter.savedN").replace("{n}", String(ok)))
-      setBulkValues({})
+      if (ok > 0) toast.success(t("meter.savedN").replace("{n}", String(ok)))
+      if (failed.length > 0) toast.error(t("meter.bulkRejected").replace("{n}", String(failed.length)))
+      // Keep only the rejected rows so they can be corrected.
+      setBulkValues((m) => Object.fromEntries(Object.entries(m).filter(([id]) => failed.includes(id))))
     } finally {
       setBusy(false)
     }

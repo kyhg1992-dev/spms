@@ -192,14 +192,25 @@ export async function recordMeterReadingAndRunPMEngine(
       assetHours: asset.operatingHours,
       assetKm: asset.odometer,
     })
+    // Hard ceiling for a single update to catch typos (e.g. an extra digit):
+    // 100,000 km for odometer, 20,000 hours for operating hours.
+    const hardMaxDelta = input.kind === "odometer" ? 100_000 : 20_000
     const anomaly = detectMeterAnomaly({
       previousValue,
       nextValue: input.value,
       thresholdPct: settings?.meterAnomalyPct,
+      hardMaxDelta,
     })
 
     if (anomaly.reason === "METER_ROLLBACK") {
-      return errorState<PMEngineMeterResult>("Meter value cannot be lower than the current recorded value")
+      return errorState<PMEngineMeterResult>(
+        `لا يمكن أن تكون القراءة أقل من القيمة الحالية المسجّلة (${Math.round(previousValue ?? 0).toLocaleString("en-US")}).`
+      )
+    }
+    if (anomaly.reason === "DELTA_TOO_LARGE") {
+      return errorState<PMEngineMeterResult>(
+        `قفزة كبيرة غير منطقية في القراءة (+${Math.round(anomaly.deltaFromPrevious ?? 0).toLocaleString("en-US")}). تحقّق من الرقم.`
+      )
     }
 
     const assetMeters = applyMeterToAssetSnapshot({
