@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 
+import { RequestNoPromptDialog } from "@/components/work-orders/request-no-prompt-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -41,6 +42,7 @@ export default function ScanAssetPage() {
   const [kind, setKind] = useState<MeterReadingKind>("operating_hours")
   const [value, setValue] = useState("")
   const [busy, setBusy] = useState(false)
+  const [reqPromptId, setReqPromptId] = useState<string | null>(null)
 
   const templatesById = useMemo(
     () =>
@@ -134,7 +136,7 @@ export default function ScanAssetPage() {
         return
       }
       toast.success("تم توليد أمر العمل")
-      navigate(`/dashboard/work-orders/${res.data.workOrderId}`)
+      setReqPromptId(res.data.workOrderId)
     } finally {
       setBusy(false)
     }
@@ -234,6 +236,16 @@ export default function ScanAssetPage() {
           {t("common.fullDetails")} <ArrowRight className="size-4 rtl:rotate-180" />
         </Link>
       </Button>
+
+      <RequestNoPromptDialog
+        workOrderId={reqPromptId}
+        open={reqPromptId !== null}
+        onDone={() => {
+          const id = reqPromptId
+          setReqPromptId(null)
+          if (id) navigate(`/dashboard/work-orders/${id}`)
+        }}
+      />
     </div>
   )
 }

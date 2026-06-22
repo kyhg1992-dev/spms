@@ -196,6 +196,11 @@ const DICT: Record<string, { ar: string; en: string }> = {
   "dur.h": { ar: "س", en: "h" },
   "dur.m": { ar: "د", en: "m" },
   "exec.print": { ar: "طباعة الملخص", en: "Print summary" },
+  // Request-number prompt (after generating a work order)
+  "reqp.title": { ar: "رقم الطلب المرجعي (الكام)", en: "Reference request number (CAM)" },
+  "reqp.hint": { ar: "أدخل رقم الطلب المفتوح في النظام الأساسي — مطلوب قبل الإغلاق.", en: "Enter the request number opened in the main system — required before closing." },
+  "reqp.saveGo": { ar: "حفظ وفتح أمر العمل", en: "Save & open work order" },
+  "reqp.later": { ar: "لاحقاً", en: "Later" },
   "wod.approvalRequired": { ar: "مطلوب اعتماد", en: "Approval required" },
   "wod.taskDesc": { ar: "وصف مهمة تنفيذية", en: "Execution task description" },
   "wod.internalNotes": { ar: "ملاحظات داخلية", en: "Internal notes" },

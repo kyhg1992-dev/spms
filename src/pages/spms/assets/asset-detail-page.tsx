@@ -10,6 +10,7 @@ import { AssetDeleteDialog } from "@/components/assets/asset-delete-dialog"
 import { AssetFormDialog } from "@/components/assets/asset-form-dialog"
 import { AssetMaintenanceHistory } from "@/components/assets/asset-maintenance-history"
 import { AssetMeterPanel } from "@/components/assets/asset-meter-panel"
+import { RequestNoPromptDialog } from "@/components/work-orders/request-no-prompt-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,6 +44,7 @@ export default function AssetDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [genBusy, setGenBusy] = useState(false)
+  const [reqPromptId, setReqPromptId] = useState<string | null>(null)
 
   const templates = useMaintenanceTemplatesQuery()
   const asset = useMemo(() => data?.find((a) => a.id === assetId) as AssetRow | undefined, [data, assetId])
@@ -73,7 +75,8 @@ export default function AssetDetailPage() {
       }
       await queryClient.invalidateQueries({ queryKey: ["workOrders"] })
       toast.success("تم توليد أمر العمل")
-      navigate(`/dashboard/work-orders/${res.data.workOrderId}`)
+      // Prompt for the CAM request number immediately after generating.
+      setReqPromptId(res.data.workOrderId)
     } finally {
       setGenBusy(false)
     }
@@ -271,6 +274,16 @@ export default function AssetDetailPage() {
       <AssetMeterPanel assetId={asset.id} />
 
       <AssetMaintenanceHistory assetId={asset.id} />
+
+      <RequestNoPromptDialog
+        workOrderId={reqPromptId}
+        open={reqPromptId !== null}
+        onDone={() => {
+          const id = reqPromptId
+          setReqPromptId(null)
+          if (id) navigate(`/dashboard/work-orders/${id}`)
+        }}
+      />
 
       <AssetFormDialog open={editOpen} onOpenChange={setEditOpen} mode="edit" asset={asset} />
       <AssetDeleteDialog
