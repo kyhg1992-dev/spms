@@ -68,8 +68,9 @@ export default function ScanAssetPage() {
   }
 
   const next = deriveNextServiceForAsset({ asset, templatesById })
+  const isAuthed = !!user?.uid && !!spmsRole
   const isManager = spmsRole === "admin" || spmsRole === "manager"
-  const canEnterReading = spmsRole === "admin" || spmsRole === "manager" || spmsRole === "technician"
+  const canEnterReading = isAuthed && (spmsRole === "admin" || spmsRole === "manager" || spmsRole === "technician")
 
   async function submitReading() {
     if (!spmsRole || !user?.uid) return
@@ -213,7 +214,14 @@ export default function ScanAssetPage() {
         </Card>
       ) : null}
 
-      {next ? (
+      {!isAuthed ? (
+        <div className="flex flex-col items-center gap-2 rounded-lg border bg-muted/30 p-3 text-center">
+          <p className="text-muted-foreground text-sm">{t("scan.loginToAct")}</p>
+          <Button asChild size="sm">
+            <Link to="/login">{t("scan.login")}</Link>
+          </Button>
+        </div>
+      ) : next ? (
         <div className="flex flex-col gap-2">
           {isManager ? (
             <Button disabled={busy} onClick={() => void generate()}>

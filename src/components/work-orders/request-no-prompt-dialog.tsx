@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/contexts/auth-context"
 import { useI18n } from "@/i18n/i18n"
 import { updateWorkOrder } from "@/services/firestore/spms-service"
+import { requestNoTaken } from "@/services/firestore/work-order-request-no"
 
 /**
  * Prompts the manager for the originating request (CAM) number right after a work
@@ -43,6 +44,10 @@ export function RequestNoPromptDialog({
     if (!spmsRole || !workOrderId) return onDone()
     setBusy(true)
     try {
+      if (value.trim() && (await requestNoTaken(value, workOrderId))) {
+        toast.error(t("reqp.duplicate"))
+        return
+      }
       const res = await updateWorkOrder(spmsRole, workOrderId, {
         externalRequestNo: value.trim() || undefined,
       })

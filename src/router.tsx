@@ -30,11 +30,13 @@ export const router = createBrowserRouter([
   { path: "/", element: <RootRedirect /> },
   { path: "/home", element: <HomePage /> },
   { path: "/login", element: <LoginPage /> },
+  // Public barcode scan: view next/last service without an account.
+  { path: "/scan", element: lazyPage(() => import("@/pages/spms/scan-home-page")) },
+  { path: "/scan/:assetId", element: lazyPage(() => import("@/pages/spms/scan-asset-page")) },
   {
     element: <ProtectedRoute allowedRoles={[...ALL_USER_ROLES]} />,
     children: [
       { path: "/about", element: lazyPage(() => import("@/pages/about-page")) },
-      { path: "/scan/:assetId", element: lazyPage(() => import("@/pages/spms/scan-asset-page")) },
       { path: "/print/asset/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-card-print-page")) },
       { path: "/print/asset-report/:assetId", element: lazyPage(() => import("@/pages/spms/assets/asset-report-print-page")) },
       { path: "/print/maintenance-log", element: lazyPage(() => import("@/pages/spms/maintenance-log-print-page")) },
@@ -47,6 +49,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: lazyPage(() => import("@/pages/spms/dashboard-home-page")) },
           { path: "scan", element: lazyPage(() => import("@/pages/spms/scan-home-page")) },
+          { path: "meter", element: lazyPage(() => import("@/pages/spms/meter-update-page")) },
           {
             path: "assets",
             element: <Outlet />,

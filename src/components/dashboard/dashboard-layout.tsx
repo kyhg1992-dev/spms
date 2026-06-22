@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarCheck,
   ClipboardList,
+  Gauge,
   History,
   LayoutTemplate,
   LayoutDashboard,
@@ -51,6 +52,7 @@ type NavEntry = {
 const NAV: NavEntry[] = [
   { to: `${navBase}`, labelKey: "nav.dashboard", icon: LayoutDashboard, colorKey: "dashboard" },
   { to: `${navBase}/scan`, labelKey: "nav.scan", icon: ScanLine, colorKey: "scan" },
+  { to: `${navBase}/meter`, labelKey: "nav.meter", icon: Gauge, colorKey: "pm" },
   { to: `${navBase}/assets`, labelKey: "nav.assets", icon: Building2, colorKey: "assets" },
   { to: `${navBase}/work-orders`, labelKey: "nav.workOrders", icon: ClipboardList, colorKey: "workOrders" },
   { to: `${navBase}/maintenance-log`, labelKey: "nav.maintenanceLog", icon: History, colorKey: "maintenanceLog" },

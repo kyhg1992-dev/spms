@@ -217,7 +217,9 @@ service cloud.firestore {
     }
 
     match /assets/{assetId} {
-      allow read: if isSignedIn();
+      // Public read: anyone who scans an asset barcode can view its maintenance
+      // status (next/last service) without an account. Writes stay restricted.
+      allow read: if true;
       allow create: if isSignedIn() && managerRole();
       allow update: if (isSignedIn() && managerRole())
         || (isSignedIn() && opsRole() && assetMeterUpdateOnly());
@@ -245,7 +247,8 @@ service cloud.firestore {
     }
 
     match /maintenanceTemplates/{templateId} {
-      allow read: if isSignedIn();
+      // Public read so the barcode scan view can compute next/last service.
+      allow read: if true;
       allow create, update: if isSignedIn() && managerRole()
         && request.resource.data.keys().hasOnly(maintenanceTemplateFields());
       allow delete: if isSignedIn() && isAdmin();

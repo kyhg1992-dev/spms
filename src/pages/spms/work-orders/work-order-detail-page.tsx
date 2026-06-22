@@ -23,6 +23,7 @@ import { formatArDate, formatArDateTime, formatDuration } from "@/lib/format"
 import { buildWorkOrderTimeline } from "@/lib/work-order-timeline"
 import type { WorkOrder } from "@/models/firestore"
 import { updateWorkOrder } from "@/services/firestore/spms-service"
+import { requestNoTaken } from "@/services/firestore/work-order-request-no"
 
 export default function WorkOrderDetailPage() {
   const { workOrderId } = useParams<{ workOrderId: string }>()
@@ -181,6 +182,10 @@ function RequestRefCard({ workOrder }: { workOrder: WorkOrder & { id: string } }
     if (!spmsRole) return
     setBusy(true)
     try {
+      if (value.trim() && (await requestNoTaken(value, workOrder.id))) {
+        toast.error(t("reqp.duplicate"))
+        return
+      }
       const res = await updateWorkOrder(spmsRole, workOrder.id, {
         externalRequestNo: value.trim() || undefined,
       })
